@@ -6,7 +6,7 @@ import {
 
 describe('프로젝트 이름 규칙', () => {
   test('입력 실수 허용을 위해 앞뒤 공백은 지운 뒤 검사한다', () => {
-    expect(projectNameSchema.parse('  채용관  ')).toBe('채용관');
+    expect(projectNameSchema.parse('  가계부  ')).toBe('가계부');
   });
 
   test('사이드바 폭을 지키기 위해 공백을 지운 뒤 40자를 넘으면 거부한다', () => {

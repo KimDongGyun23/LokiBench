@@ -1,8 +1,26 @@
-.DS_Store
+# 의존성
 node_modules/
+
+# 빌드 결과, 캐시
 dist/
 .turbo/
+
+# 로컬 데이터 (sqlite DB, 백업)
 apps/api/data/
-*.log
+
+# 환경 변수
 .env
+
+# 로그
+*.log
+
+# OS
+.DS_Store
+
+# 기획 문서 (로컬에만 둠)
 docs/
+
+# AI 작업 설정, 기록 (로컬에만 둠)
+CLAUDE.md
+.claude/
+.superpowers/

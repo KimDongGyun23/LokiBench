@@ -14,7 +14,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky"
+    "prepare": "husky && turbo run build --filter=@lokibench/contracts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -60,3 +60,38 @@ describe('오류 응답 모양', () => {
     expect(errorResponseSchema.parse(response.body).code).toBe('VALIDATION');
   });
 });
+
+describe('클라이언트 오류 분류', () => {
+  test('서버 장애로 오해하지 않도록 본문 크기 초과는 500이 아니라 VALIDATION으로 준다', async () => {
+    // Given: 본문 해석기의 기본 한도(100KB)를 넘는 본문
+    const testApp = await createTestApp();
+    app = testApp.app;
+    const oversizedBody = JSON.stringify({ name: 'a'.repeat(200_000) });
+
+    // When
+    const response = await request(testApp.server)
+      .post('/api/projects')
+      .set('Content-Type', 'application/json')
+      .send(oversizedBody);
+
+    // Then
+    expect(response.status).toBe(400);
+    expect(errorResponseSchema.parse(response.body).code).toBe('VALIDATION');
+  });
+
+  test('서버 장애로 오해하지 않도록 지원하지 않는 문자셋은 500이 아니라 VALIDATION으로 준다', async () => {
+    // Given
+    const testApp = await createTestApp();
+    app = testApp.app;
+
+    // When
+    const response = await request(testApp.server)
+      .post('/api/projects')
+      .set('Content-Type', 'application/json; charset=latin9')
+      .send('{}');
+
+    // Then
+    expect(response.status).toBe(400);
+    expect(errorResponseSchema.parse(response.body).code).toBe('VALIDATION');
+  });
+});

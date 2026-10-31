@@ -5,10 +5,10 @@ on:
   push:
     branches: [main]
 
-# 같은 PR에 새 커밋이 오면 앞선 검사를 멈춤
+# 같은 PR에 새 커밋이 오면 앞선 검사를 멈춤 (main은 병합 커밋마다 결과를 남기도록 취소하지 않음)
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read

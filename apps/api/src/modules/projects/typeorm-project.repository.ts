@@ -48,8 +48,13 @@ export class TypeOrmProjectRepository extends ProjectRepository {
     return toProject(entity);
   }
 
-  async update(id: number, changes: { name?: string; color?: ProjectColor }): Promise<Project> {
-    const entity = await this.repository.findOneByOrFail({ id });
+  async update(
+    id: number,
+    changes: { name?: string; color?: ProjectColor },
+  ): Promise<Project | null> {
+    const entity = await this.repository.findOneBy({ id });
+    if (!entity) return null;
+
     this.repository.merge(entity, changes);
     await this.saveOrThrowNameTaken(entity);
     return toProject(entity);

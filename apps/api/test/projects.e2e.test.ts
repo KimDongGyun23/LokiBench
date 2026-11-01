@@ -251,6 +251,18 @@ describe('프로젝트 수정', () => {
     expect(errorResponseSchema.parse(response.body).code).toBe('PROJECT_NOT_FOUND');
   });
 
+  test('대상이 없다는 안내가 먼저이므로 없는 프로젝트에 겹치는 이름을 보내도 PROJECT_NOT_FOUND로 준다', async () => {
+    // Given
+    await addProject('가계부');
+
+    // When
+    const response = await request(server).patch('/api/projects/999').send({ name: '가계부' });
+
+    // Then
+    expect(response.status).toBe(404);
+    expect(errorResponseSchema.parse(response.body).code).toBe('PROJECT_NOT_FOUND');
+  });
+
   test('빈 수정 요청은 VALIDATION으로 준다', async () => {
     // Given
     const blog = await addProject('블로그');
@@ -300,5 +312,18 @@ describe('이름 유일 규칙', () => {
 
     // Then
     await expect(attempt).rejects.toMatchObject({ code: 'PROJECT_NAME_TAKEN' });
+  });
+});
+
+describe('저장소 수정', () => {
+  test('구현체가 바뀌어도 500이 나가지 않도록 없는 id는 예외 대신 null을 준다', async () => {
+    // Given: service의 존재 확인 없이 저장소를 직접 부름
+    const repository = app.get(ProjectRepository);
+
+    // When
+    const updated = await repository.update(999, { color: 'sky' });
+
+    // Then
+    expect(updated).toBeNull();
   });
 });

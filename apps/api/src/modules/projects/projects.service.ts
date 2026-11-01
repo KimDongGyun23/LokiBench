@@ -42,6 +42,7 @@ export class ProjectsService {
    * 프로젝트의 이름이나 색을 바꾼다.
    *
    * - 자기 이름 그대로 저장은 중복이 아니므로 통과시킨다
+   * - 대상이 없다는 안내가 이름 중복보다 먼저이므로 존재부터 확인한다
    *
    * @param id 바꿀 프로젝트 id
    * @param request 바꿀 이름, 색 (둘 중 하나 이상)
@@ -59,6 +60,11 @@ export class ProjectsService {
       }
     }
 
-    return this.repository.update(id, request);
+    const updated = await this.repository.update(id, request);
+    if (!updated) {
+      throw new AppError('PROJECT_NOT_FOUND');
+    }
+
+    return updated;
   }
 }

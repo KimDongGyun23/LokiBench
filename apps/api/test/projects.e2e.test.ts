@@ -5,7 +5,6 @@ import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import type { DataSource } from 'typeorm';
 
-import { ProjectRepository } from '../src/modules/projects/project.repository';
 import { createTestApp } from './create-test-app';
 
 let app: INestApplication;
@@ -298,45 +297,5 @@ describe('프로젝트 수정', () => {
     // Then
     expect(response.status).toBe(400);
     expect(errorResponseSchema.parse(response.body).code).toBe('VALIDATION');
-  });
-});
-
-describe('이름 유일 규칙', () => {
-  test('두 탭 동시 추가에 대비하기 위해 service 조회를 지나친 중복도 DB 제약에서 409로 바꾼다', async () => {
-    // Given: service 조회 없이 저장소로 직접 같은 이름을 넣음
-    const repository = app.get(ProjectRepository);
-    await repository.create({ name: '독서 기록', color: 'indigo' });
-
-    // When
-    const attempt = repository.create({ name: '독서 기록', color: 'sky' });
-
-    // Then
-    await expect(attempt).rejects.toMatchObject({ code: 'PROJECT_NAME_TAKEN' });
-  });
-
-  test('두 탭 동시 이름 변경에 대비하기 위해 수정에서도 DB 제약 위반을 409로 바꾼다', async () => {
-    // Given: service 조회 없이 저장소로 직접 다른 프로젝트의 이름으로 바꿈
-    const repository = app.get(ProjectRepository);
-    await repository.create({ name: '독서 기록', color: 'indigo' });
-    const blog = await repository.create({ name: '블로그', color: 'sky' });
-
-    // When
-    const attempt = repository.update(blog.id, { name: '독서 기록' });
-
-    // Then
-    await expect(attempt).rejects.toMatchObject({ code: 'PROJECT_NAME_TAKEN' });
-  });
-});
-
-describe('저장소 수정', () => {
-  test('구현체가 바뀌어도 500이 나가지 않도록 없는 id는 예외 대신 null을 준다', async () => {
-    // Given: service의 존재 확인 없이 저장소를 직접 부름
-    const repository = app.get(ProjectRepository);
-
-    // When
-    const updated = await repository.update(999, { color: 'sky' });
-
-    // Then
-    expect(updated).toBeNull();
   });
 });

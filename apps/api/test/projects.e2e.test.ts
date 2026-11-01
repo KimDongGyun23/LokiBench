@@ -101,6 +101,22 @@ describe('프로젝트 추가', () => {
     // Then
     expect(response.status).toBe(201);
   });
+
+  test('아카이브 해제 때 이름이 겹치지 않도록 아카이브된 프로젝트와 같은 이름도 409를 준다', async () => {
+    // Given: 아카이브 기능이 아직 없어서 DB에 직접 넣음
+    await dataSource.query(
+      `INSERT INTO projects (name, color, created_at, archived_at)
+       VALUES ('이사 준비', 'sky', '2026-10-01T00:00:00.000Z', '2026-10-02T00:00:00.000Z')`,
+    );
+
+    // When
+    const response = await request(server).post('/api/projects').send({ name: '이사 준비' });
+
+    // Then
+    expect(response.status).toBe(409);
+    expect(errorResponseSchema.parse(response.body).code).toBe('PROJECT_NAME_TAKEN');
+    expect(await countProjects()).toBe(1);
+  });
 });
 
 describe('프로젝트 목록', () => {

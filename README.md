@@ -55,9 +55,9 @@
 | 영역        | 사용 기술                                                                     |
 | ----------- | ----------------------------------------------------------------------------- |
 | 저장소 구성 | pnpm 10 workspace, Turborepo 2, Node 24                                       |
-| 언어        | TypeScript 5.9                                                                |
-| 공유 계약   | zod 4, tsup 8 (CJS + ESM 빌드)                                                |
-| api         | NestJS 11, TypeORM 0.3, better-sqlite3 12, nestjs-zod 5                       |
+| 언어        | TypeScript 6.0                                                                |
+| 공유 계약   | zod 4, tsup 9 (CJS + ESM 빌드)                                                |
+| api         | NestJS 11, TypeORM 1, better-sqlite3 12, nestjs-zod 5                         |
 | web         | Vite 7, React 19, React Router 7, TanStack Query 5, Tailwind CSS 4, shadcn/ui |
-| 테스트      | Vitest 3, supertest, Testing Library, MSW 2                                   |
+| 테스트      | Vitest 5, supertest, Testing Library, MSW 2                                   |
 | 코드 품질   | ESLint 10 (typescript-eslint), Prettier 3, husky, lint-staged                 |

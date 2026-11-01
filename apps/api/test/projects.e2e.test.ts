@@ -196,6 +196,23 @@ describe('프로젝트 수정', () => {
     expect(projectSchema.parse(response.body)).toEqual({ ...blog, color: 'violet' });
   });
 
+  test('이름만 보내면 앞뒤 공백을 지운 이름으로 바꾸고 색은 그대로 둔다', async () => {
+    // Given
+    const blog = await addProject('블로그');
+
+    // When
+    const response = await request(server)
+      .patch(`/api/projects/${String(blog.id)}`)
+      .send({ name: ' 가계부 ' });
+
+    // Then: 응답과 다시 읽은 목록 모두에 바뀐 이름이 보임
+    expect(response.status).toBe(200);
+    expect(projectSchema.parse(response.body)).toEqual({ ...blog, name: '가계부' });
+    const list = await request(server).get('/api/projects');
+    const projects = projectSchema.array().parse(list.body);
+    expect(projects).toEqual([{ ...blog, name: '가계부' }]);
+  });
+
   test('다른 프로젝트의 이름으로 바꾸면 409를 준다', async () => {
     // Given
     const blog = await addProject('블로그');

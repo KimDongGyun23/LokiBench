@@ -2,12 +2,16 @@ packages:
   - apps/*
   - packages/*
 
-onlyBuiltDependencies:
-  - esbuild
-  - better-sqlite3
-  - '@swc/core'
-
 catalog:
   typescript: ~6.0.3
   vitest: ^3.2.7
   zod: ^4.6.7
+
+catalogMode: strict
+
+engineStrict: true
+
+onlyBuiltDependencies:
+  - esbuild
+  - better-sqlite3
+  - '@swc/core'

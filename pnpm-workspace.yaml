@@ -4,7 +4,7 @@ packages:
 
 catalog:
   typescript: ~6.0.3
-  vitest: ^3.2.7
+  vitest: ^5.0.5
   zod: ^4.6.7
 
 catalogMode: strict

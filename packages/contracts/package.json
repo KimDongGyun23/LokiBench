@@ -25,11 +25,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "zod": "^4.6.7"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "tsup": "^9.0.0",
-    "typescript": "~6.0.3",
-    "vitest": "^3.2.7"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

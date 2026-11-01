@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm';
 
-import { createDataSourceOptions } from '../src/database/data-source-options';
+import { createDataSourceOptions } from '../data-source-options';
 
 // 계약의 팔레트에 새 색이 더해진 미래 상황을 흉내 냄
 vi.mock('@lokibench/contracts', async (importOriginal) => {

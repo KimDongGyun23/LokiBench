@@ -313,6 +313,19 @@ describe('이름 유일 규칙', () => {
     // Then
     await expect(attempt).rejects.toMatchObject({ code: 'PROJECT_NAME_TAKEN' });
   });
+
+  test('두 탭 동시 이름 변경에 대비하기 위해 수정에서도 DB 제약 위반을 409로 바꾼다', async () => {
+    // Given: service 조회 없이 저장소로 직접 다른 프로젝트의 이름으로 바꿈
+    const repository = app.get(ProjectRepository);
+    await repository.create({ name: '독서 기록', color: 'indigo' });
+    const blog = await repository.create({ name: '블로그', color: 'sky' });
+
+    // When
+    const attempt = repository.update(blog.id, { name: '독서 기록' });
+
+    // Then
+    await expect(attempt).rejects.toMatchObject({ code: 'PROJECT_NAME_TAKEN' });
+  });
 });
 
 describe('저장소 수정', () => {

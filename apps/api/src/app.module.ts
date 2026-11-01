@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { createDataSourceOptions } from './database/data-source-options';
 import { HealthController } from './health/health.controller';
+import { ProjectsModule } from './modules/projects/projects.module';
 
 interface AppModuleOptions {
   databasePath: string;
@@ -24,6 +25,7 @@ export class AppModule {
       imports: [
         // 로컬 sqlite는 재시도해도 결과가 같아서, 실패를 바로 드러내도록 재시도하지 않음
         TypeOrmModule.forRoot({ ...createDataSourceOptions(databasePath), retryAttempts: 0 }),
+        ProjectsModule,
       ],
       controllers: [HealthController],
     };

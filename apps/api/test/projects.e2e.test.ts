@@ -91,6 +91,35 @@ describe('프로젝트 추가', () => {
     expect(projectSchema.parse(response.body).color).toBe('indigo');
   });
 
+  test('색 구분을 넓히기 위해 이미 있는 프로젝트를 보고 팔레트 순서대로 다른 색을 준다', async () => {
+    // Given
+    await addProject('독서 기록');
+    await addProject('가계부');
+
+    // When
+    const blog = await addProject('블로그');
+
+    // Then
+    const response = await request(server).get('/api/projects');
+    const projects = projectSchema.array().parse(response.body);
+    expect(projects.map((project) => project.color)).toEqual(['indigo', 'sky', 'teal']);
+    expect(blog.color).toBe('teal');
+  });
+
+  test('숨겨진 프로젝트 색은 화면에서 겹치지 않으므로 아카이브된 프로젝트의 색도 다시 준다', async () => {
+    // Given: 아카이브된 indigo 프로젝트만 있음
+    await dataSource.query(
+      `INSERT INTO projects (name, color, created_at, archived_at)
+       VALUES ('이사 준비', 'indigo', '2026-10-01T00:00:00.000Z', '2026-10-02T00:00:00.000Z')`,
+    );
+
+    // When
+    const project = await addProject('가계부');
+
+    // Then
+    expect(project.color).toBe('indigo');
+  });
+
   test('대소문자가 다르면 다른 이름으로 본다', async () => {
     // Given
     await addProject('Blog');

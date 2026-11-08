@@ -5,7 +5,7 @@ import type { CreateProjectInput, Project, UpdateProjectInput } from './project.
  *
  * - service는 이 추상 클래스에만 기대고, 어떤 DB를 쓰는지는 구현체가 정한다
  * - Nest가 추상 클래스를 주입 토큰으로 쓸 수 있어서 interface 대신 abstract class로 둔다
- * - 이름 UNIQUE 위반은 구현체가 AppError('PROJECT_NAME_TAKEN')로 바꿔 던진다
+ * - 이름 UNIQUE 위반은 구현체가 DomainError('PROJECT_NAME_TAKEN')로 바꿔 던진다
  */
 export abstract class ProjectRepository {
   // 만든 순서(createdAt, 같으면 id 오름차순)로 줌

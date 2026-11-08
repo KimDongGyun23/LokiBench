@@ -9,15 +9,3 @@ export const ERROR_STATUS: Record<ErrorCode, HttpStatus> = {
   PROJECT_NAME_TAKEN: HttpStatus.CONFLICT,
   INTERNAL: HttpStatus.INTERNAL_SERVER_ERROR,
 };
-
-// service가 계약의 오류 코드를 담아 던지는 예외 (필터가 응답으로 바꿈)
-export class AppError extends Error {
-  constructor(
-    readonly code: ErrorCode,
-    message: string = code,
-    readonly details?: Record<string, unknown>,
-  ) {
-    super(message);
-    this.name = 'AppError';
-  }
-}

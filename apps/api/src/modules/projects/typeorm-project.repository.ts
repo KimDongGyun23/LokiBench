@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, QueryFailedError, type Repository } from 'typeorm';
 
-import { AppError } from '../../common/app-error';
+import { DomainError } from '../../common/domain-error';
 import { ProjectEntity } from './project.entity';
 import type { CreateProjectInput, Project, UpdateProjectInput } from './project.model';
 import { ProjectRepository } from './project.repository';
@@ -67,7 +67,7 @@ export class TypeOrmProjectRepository extends ProjectRepository {
       await this.repository.save(entity);
     } catch (error) {
       if (isUniqueViolation(error)) {
-        throw new AppError('PROJECT_NAME_TAKEN');
+        throw new DomainError('PROJECT_NAME_TAKEN');
       }
       throw error;
     }

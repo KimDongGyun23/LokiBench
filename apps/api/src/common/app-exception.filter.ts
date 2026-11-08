@@ -9,7 +9,8 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 
-import { AppError, ERROR_STATUS } from './app-error';
+import { DomainError } from './domain-error';
+import { ERROR_STATUS } from './error-status';
 
 /**
  * 모든 예외를 계약의 오류 응답 모양으로 바꾼다.
@@ -31,14 +32,14 @@ export class AppExceptionFilter implements ExceptionFilter {
   /**
    * 예외 종류를 계약의 오류 응답으로 옮긴다.
    *
-   * - 위에서부터 먼저 맞는 종류를 쓰므로 AppError를 가장 먼저 본다
+   * - 위에서부터 먼저 맞는 종류를 쓰므로 DomainError를 가장 먼저 본다
    * - 어느 종류에도 맞지 않으면 INTERNAL로 감추고 원래 예외는 로그에만 남긴다
    *
    * @param exception Nest가 잡은 예외
    * @returns 응답 본문에 그대로 실을 오류 응답
    */
   private toErrorResponse(exception: unknown): ErrorResponse {
-    if (exception instanceof AppError) {
+    if (exception instanceof DomainError) {
       return {
         code: exception.code,
         message: exception.message,

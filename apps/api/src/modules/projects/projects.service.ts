@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import { AppError } from '../../common/app-error';
+import { DomainError } from '../../common/domain-error';
 import { pickProjectColor } from './pick-project-color';
 import type { CreateProjectCommand, Project, UpdateProjectCommand } from './project.model';
 import { ProjectRepository } from './project.repository';
@@ -31,7 +31,7 @@ export class ProjectsService {
    */
   async create(command: CreateProjectCommand): Promise<Project> {
     if (await this.repository.findByName(command.name)) {
-      throw new AppError('PROJECT_NAME_TAKEN');
+      throw new DomainError('PROJECT_NAME_TAKEN');
     }
 
     const projects = await this.repository.findAll({ includeArchived: true });
@@ -51,19 +51,19 @@ export class ProjectsService {
   async update(id: number, command: UpdateProjectCommand): Promise<Project> {
     const project = await this.repository.findById(id);
     if (!project) {
-      throw new AppError('PROJECT_NOT_FOUND');
+      throw new DomainError('PROJECT_NOT_FOUND');
     }
 
     if (command.name !== undefined) {
       const sameName = await this.repository.findByName(command.name);
       if (sameName && sameName.id !== id) {
-        throw new AppError('PROJECT_NAME_TAKEN');
+        throw new DomainError('PROJECT_NAME_TAKEN');
       }
     }
 
     const updated = await this.repository.update(id, command);
     if (!updated) {
-      throw new AppError('PROJECT_NOT_FOUND');
+      throw new DomainError('PROJECT_NOT_FOUND');
     }
 
     return updated;

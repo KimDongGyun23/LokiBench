@@ -1,9 +1,8 @@
-import type { Project } from '@lokibench/contracts';
 import { Injectable } from '@nestjs/common';
 
 import { AppError } from '../../common/app-error';
 import { pickProjectColor } from './pick-project-color';
-import type { CreateProjectCommand, UpdateProjectCommand } from './project.model';
+import type { CreateProjectCommand, Project, UpdateProjectCommand } from './project.model';
 import { ProjectRepository } from './project.repository';
 
 /**

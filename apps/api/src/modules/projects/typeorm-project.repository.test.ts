@@ -51,3 +51,20 @@ describe('수정', () => {
     expect(updated).toBeNull();
   });
 });
+
+describe('도메인 모양', () => {
+  test('도메인이 시각으로 바로 계산하도록 DB의 ISO 문자열을 Date로 바꿔 준다', async () => {
+    // Given: DB에 아카이브된 행을 직접 넣음
+    await dataSource.query(
+      `INSERT INTO projects (name, color, created_at, archived_at)
+       VALUES ('이사 준비', 'sky', '2026-10-01T00:00:00.000Z', '2026-10-02T00:00:00.000Z')`,
+    );
+
+    // When
+    const [project] = await repository.findAll({ includeArchived: true });
+
+    // Then
+    expect(project.createdAt).toEqual(new Date('2026-10-01T00:00:00.000Z'));
+    expect(project.archivedAt).toEqual(new Date('2026-10-02T00:00:00.000Z'));
+  });
+});

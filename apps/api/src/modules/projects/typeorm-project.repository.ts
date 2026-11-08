@@ -1,11 +1,10 @@
-import type { Project } from '@lokibench/contracts';
-import type { ProjectColor } from '@lokibench/domain';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, QueryFailedError, type Repository } from 'typeorm';
 
 import { AppError } from '../../common/app-error';
 import { ProjectEntity } from './project.entity';
+import type { CreateProjectInput, Project, UpdateProjectInput } from './project.model';
 import { ProjectRepository } from './project.repository';
 
 /**
@@ -26,39 +25,36 @@ export class TypeOrmProjectRepository extends ProjectRepository {
       where: includeArchived ? {} : { archivedAt: IsNull() },
       order: { createdAt: 'ASC', id: 'ASC' },
     });
-    return entities.map(toProject);
+    return entities.map(toProjectModel);
   }
 
   async findById(id: number): Promise<Project | null> {
     const entity = await this.repository.findOneBy({ id });
-    return entity && toProject(entity);
+    return entity && toProjectModel(entity);
   }
 
   async findByName(name: string): Promise<Project | null> {
     const entity = await this.repository.findOneBy({ name });
-    return entity && toProject(entity);
+    return entity && toProjectModel(entity);
   }
 
-  async create(input: { name: string; color: ProjectColor }): Promise<Project> {
+  async create(input: CreateProjectInput): Promise<Project> {
     const entity = this.repository.create({
       ...input,
       createdAt: new Date().toISOString(),
       archivedAt: null,
     });
     await this.saveOrThrowNameTaken(entity);
-    return toProject(entity);
+    return toProjectModel(entity);
   }
 
-  async update(
-    id: number,
-    changes: { name?: string; color?: ProjectColor },
-  ): Promise<Project | null> {
+  async update(id: number, changes: UpdateProjectInput): Promise<Project | null> {
     const entity = await this.repository.findOneBy({ id });
     if (!entity) return null;
 
     this.repository.merge(entity, changes);
     await this.saveOrThrowNameTaken(entity);
-    return toProject(entity);
+    return toProjectModel(entity);
   }
 
   // service 조회를 지나친 동시 요청도 500이 아니라 409가 되도록 UNIQUE 위반을 계약 오류로 바꿈
@@ -75,18 +71,20 @@ export class TypeOrmProjectRepository extends ProjectRepository {
 }
 
 /**
- * 엔티티를 계약의 Project 모양으로 옮긴다.
+ * 엔티티를 도메인 프로젝트로 바꾼다.
+ *
+ * - DB에 ISO 문자열로 저장한 시각을 Date로 바꾼다
  *
  * @param entity DB에서 읽은 엔티티
- * @returns 응답에 그대로 실을 프로젝트
+ * @returns service가 다루는 도메인 프로젝트
  */
-function toProject(entity: ProjectEntity): Project {
+function toProjectModel(entity: ProjectEntity): Project {
   return {
     id: entity.id,
     name: entity.name,
     color: entity.color,
-    createdAt: entity.createdAt,
-    archivedAt: entity.archivedAt,
+    createdAt: new Date(entity.createdAt),
+    archivedAt: entity.archivedAt === null ? null : new Date(entity.archivedAt),
   };
 }
 

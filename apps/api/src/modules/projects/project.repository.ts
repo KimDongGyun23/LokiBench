@@ -1,5 +1,4 @@
-import type { Project } from '@lokibench/contracts';
-import type { ProjectColor } from '@lokibench/domain';
+import type { CreateProjectInput, Project, UpdateProjectInput } from './project.model';
 
 /**
  * 프로젝트 저장소의 약속이다.
@@ -16,11 +15,8 @@ export abstract class ProjectRepository {
 
   abstract findByName(name: string): Promise<Project | null>;
 
-  abstract create(input: { name: string; color: ProjectColor }): Promise<Project>;
+  abstract create(input: CreateProjectInput): Promise<Project>;
 
   // 없는 id면 예외 대신 null을 줘서 service가 PROJECT_NOT_FOUND로 바꾸게 함
-  abstract update(
-    id: number,
-    changes: { name?: string; color?: ProjectColor },
-  ): Promise<Project | null>;
+  abstract update(id: number, changes: UpdateProjectInput): Promise<Project | null>;
 }

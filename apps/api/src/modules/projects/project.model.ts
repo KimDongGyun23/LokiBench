@@ -17,3 +17,9 @@ export type CreateProjectInput = Pick<Project, 'name' | 'color'>;
 
 // 저장소에서 프로젝트를 바꿀 때 넘기는 값
 export type UpdateProjectInput = Partial<CreateProjectInput>;
+
+// service에 새 프로젝트를 요청할 때 넘기는 값
+export type CreateProjectCommand = Pick<CreateProjectInput, 'name'>;
+
+// service에 프로젝트 수정을 요청할 때 넘기는 값
+export type UpdateProjectCommand = UpdateProjectInput;

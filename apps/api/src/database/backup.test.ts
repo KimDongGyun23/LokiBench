@@ -245,6 +245,26 @@ describe('기동 백업', () => {
     expect(await readdir(backupDir)).toEqual(['app-2026-11-01.db']);
   });
 
+  test('임시 파일이 백업 폴더에 쌓이지 않도록 다른 날 강제 종료로 남은 임시 파일도 정리한다', async () => {
+    // Given: 전날 백업 도중 강제 종료되어 남은 임시 파일과, 사용자가 둔 비슷한 이름의 파일
+    const backupDir = join(workDir, 'backups');
+    await mkdir(backupDir);
+    await writeFile(join(backupDir, 'app-2026-10-31.db.tmp'), 'broken');
+    await writeFile(join(backupDir, 'notes.db.tmp'), '');
+
+    // When
+    await runStartupBackup({
+      databasePath,
+      backupDir,
+      now: new Date(2026, 10, 1, 9, 0),
+      migrationTimestamp: null,
+    });
+
+    // Then: 백업 모양의 임시 파일만 지워짐
+    const remaining = await readdir(backupDir);
+    expect(remaining.sort()).toEqual(['app-2026-11-01.db', 'notes.db.tmp']);
+  });
+
   test('백업이 없다고 오해하지 않도록 오래된 백업 정리가 실패해도 만든 백업은 created로 알린다', async () => {
     // Given: 가장 오래된 백업 자리에 지울 수 없는 폴더가 있음
     const backupDir = join(workDir, 'backups');

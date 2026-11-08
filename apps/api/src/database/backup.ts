@@ -10,9 +10,11 @@ export const BACKUP_KEEP_COUNT = 7;
 const BACKUP_FILE_PREFIX = 'app-';
 const PRE_MIGRATION_MARKER = '-pre-';
 
-const BACKUP_FILE_PATTERN = new RegExp(
-  `^${BACKUP_FILE_PREFIX}\\d{4}-\\d{2}-\\d{2}(${PRE_MIGRATION_MARKER}\\d+)?\\.db$`,
-);
+const BACKUP_FILE_NAME = `^${BACKUP_FILE_PREFIX}\\d{4}-\\d{2}-\\d{2}(${PRE_MIGRATION_MARKER}\\d+)?\\.db`;
+const BACKUP_FILE_PATTERN = new RegExp(`${BACKUP_FILE_NAME}$`);
+
+const TEMPORARY_SUFFIX = '.tmp';
+const TEMPORARY_FILE_PATTERN = new RegExp(`${BACKUP_FILE_NAME}\\${TEMPORARY_SUFFIX}$`);
 
 /**
  * 백업 파일 이름을 만든다.
@@ -50,7 +52,7 @@ export function selectBackupsToDelete(fileNames: string[], keepCount: number): s
 }
 
 /**
- * 보관 개수를 넘은 오래된 백업을 지운다.
+ * 보관 개수를 넘은 오래된 백업과 강제 종료로 남은 임시 파일을 지운다.
  *
  * - 백업은 이미 만들어졌으므로 정리에 실패해도 던지지 않고 경고만 남긴다
  * - 한 파일을 지우지 못해도 나머지 파일은 계속 지운다
@@ -66,7 +68,8 @@ async function removeOldBackups(backupDir: string): Promise<void> {
     return;
   }
 
-  const toDelete = selectBackupsToDelete(fileNames, BACKUP_KEEP_COUNT);
+  const leftovers = fileNames.filter((fileName) => TEMPORARY_FILE_PATTERN.test(fileName));
+  const toDelete = [...selectBackupsToDelete(fileNames, BACKUP_KEEP_COUNT), ...leftovers];
   const results = await Promise.allSettled(
     toDelete.map((fileName) => rm(join(backupDir, fileName))),
   );
@@ -122,8 +125,8 @@ export async function runStartupBackup(options: {
   const target = join(backupDir, backupFileName(now, migrationTimestamp));
   if (existsSync(target)) return 'skipped';
 
-  // 임시 이름은 백업 패턴에 맞지 않아 정리와 보관 개수에 섞이지 않음
-  const temporary = `${target}.tmp`;
+  // 임시 이름은 백업 패턴에 맞지 않아 보관 개수에 섞이지 않음
+  const temporary = `${target}${TEMPORARY_SUFFIX}`;
   await rm(temporary, { force: true });
 
   const source = new Database(databasePath, { readonly: true });

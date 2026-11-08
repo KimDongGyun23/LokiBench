@@ -1,4 +1,8 @@
-import { PROJECT_COLORS, type ProjectColor } from '@lokibench/contracts';
+import { PROJECT_COLORS, type ProjectColor } from '@lokibench/domain';
+
+import type { Project } from './project.model';
+
+type ExistingProject = Pick<Project, 'color' | 'archivedAt'>;
 
 /**
  * 새 프로젝트에 줄 색을 고른다.
@@ -10,9 +14,7 @@ import { PROJECT_COLORS, type ProjectColor } from '@lokibench/contracts';
  * @param projects 지금 있는 프로젝트 전체 (아카이브 포함)
  * @returns 새 프로젝트에 줄 색
  */
-export function pickProjectColor(
-  projects: ReadonlyArray<{ color: ProjectColor; archivedAt: string | null }>,
-): ProjectColor {
+export function pickProjectColor(projects: ReadonlyArray<ExistingProject>): ProjectColor {
   const zeroCounts = PROJECT_COLORS.map((color) => [color, 0] as const);
   const counts = new Map<ProjectColor, number>(zeroCounts);
 

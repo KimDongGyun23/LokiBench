@@ -1,16 +1,16 @@
-import type { Project, ProjectColor } from '@lokibench/contracts';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, QueryFailedError, type Repository } from 'typeorm';
 
-import { AppError } from '../../common/app-error';
+import { DomainError } from '../../common/domain-error';
 import { ProjectEntity } from './project.entity';
+import type { CreateProjectInput, Project, UpdateProjectInput } from './project.model';
 import { ProjectRepository } from './project.repository';
 
 /**
  * sqlite에 프로젝트를 읽고 쓰는 저장소 구현체다.
  *
- * - 엔티티는 밖으로 내보내지 않고 계약의 Project로 바꿔서 돌려준다
+ * - 엔티티는 밖으로 내보내지 않고 도메인 Project로 바꿔서 돌려준다
  */
 @Injectable()
 export class TypeOrmProjectRepository extends ProjectRepository {
@@ -25,48 +25,49 @@ export class TypeOrmProjectRepository extends ProjectRepository {
       where: includeArchived ? {} : { archivedAt: IsNull() },
       order: { createdAt: 'ASC', id: 'ASC' },
     });
-    return entities.map(toProject);
+    return entities.map(toProjectModel);
   }
 
   async findById(id: number): Promise<Project | null> {
     const entity = await this.repository.findOneBy({ id });
-    return entity && toProject(entity);
+    return entity && toProjectModel(entity);
   }
 
   async findByName(name: string): Promise<Project | null> {
     const entity = await this.repository.findOneBy({ name });
-    return entity && toProject(entity);
+    return entity && toProjectModel(entity);
   }
 
-  async create(input: { name: string; color: ProjectColor }): Promise<Project> {
+  async create(input: CreateProjectInput): Promise<Project> {
+    // 타입에 없는 필드가 실행 중에 섞여 와도 엔티티에 들어가지 않게 저장할 필드를 직접 고름
     const entity = this.repository.create({
-      ...input,
+      name: input.name,
+      color: input.color,
       createdAt: new Date().toISOString(),
       archivedAt: null,
     });
     await this.saveOrThrowNameTaken(entity);
-    return toProject(entity);
+    return toProjectModel(entity);
   }
 
-  async update(
-    id: number,
-    changes: { name?: string; color?: ProjectColor },
-  ): Promise<Project | null> {
+  async update(id: number, changes: UpdateProjectInput): Promise<Project | null> {
     const entity = await this.repository.findOneBy({ id });
     if (!entity) return null;
 
-    this.repository.merge(entity, changes);
+    if (changes.name !== undefined) entity.name = changes.name;
+    if (changes.color !== undefined) entity.color = changes.color;
+
     await this.saveOrThrowNameTaken(entity);
-    return toProject(entity);
+    return toProjectModel(entity);
   }
 
-  // service 조회를 지나친 동시 요청도 500이 아니라 409가 되도록 UNIQUE 위반을 계약 오류로 바꿈
+  // service 조회를 지나친 동시 요청도 알 수 없는 오류가 아니라 이름 중복으로 알리도록 UNIQUE 위반을 도메인 오류로 바꿈
   private async saveOrThrowNameTaken(entity: ProjectEntity): Promise<void> {
     try {
       await this.repository.save(entity);
     } catch (error) {
       if (isUniqueViolation(error)) {
-        throw new AppError('PROJECT_NAME_TAKEN');
+        throw new DomainError('PROJECT_NAME_TAKEN');
       }
       throw error;
     }
@@ -74,19 +75,42 @@ export class TypeOrmProjectRepository extends ProjectRepository {
 }
 
 /**
- * 엔티티를 계약의 Project 모양으로 옮긴다.
+ * 엔티티를 도메인 프로젝트로 바꾼다.
+ *
+ * - DB에 ISO 문자열로 저장한 시각을 Date로 바꾼다
  *
  * @param entity DB에서 읽은 엔티티
- * @returns 응답에 그대로 실을 프로젝트
+ * @returns service가 다루는 도메인 프로젝트
  */
-function toProject(entity: ProjectEntity): Project {
+function toProjectModel(entity: ProjectEntity): Project {
   return {
     id: entity.id,
     name: entity.name,
     color: entity.color,
-    createdAt: entity.createdAt,
-    archivedAt: entity.archivedAt,
+    createdAt: parseStoredInstant(entity.createdAt, 'created_at', entity.id),
+    archivedAt:
+      entity.archivedAt === null
+        ? null
+        : parseStoredInstant(entity.archivedAt, 'archived_at', entity.id),
   };
+}
+
+/**
+ * DB에 저장한 시각 문자열을 Date로 바꾼다.
+ *
+ * - 읽을 수 없는 값은 응답 변환에서 원인 모를 RangeError가 나기 전에 여기서 막는다
+ *
+ * @param value DB에 저장된 시각 문자열
+ * @param column 오류에 적을 열 이름
+ * @param id 오류에 적을 행 id
+ * @returns 바꾼 시각
+ */
+function parseStoredInstant(value: string, column: string, id: number): Date {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`projects.${column} 시각 형식이 잘못됨: id=${id}`);
+  }
+  return date;
 }
 
 /**

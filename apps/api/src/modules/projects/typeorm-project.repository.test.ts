@@ -51,3 +51,65 @@ describe('수정', () => {
     expect(updated).toBeNull();
   });
 });
+
+describe('도메인 모양', () => {
+  test('도메인이 시각으로 바로 계산하도록 DB의 ISO 문자열을 Date로 바꿔 준다', async () => {
+    // Given: DB에 아카이브된 행을 직접 넣음
+    await dataSource.query(
+      `INSERT INTO projects (name, color, created_at, archived_at)
+       VALUES ('이사 준비', 'sky', '2026-10-01T00:00:00.000Z', '2026-10-02T00:00:00.000Z')`,
+    );
+
+    // When
+    const [project] = await repository.findAll({ includeArchived: true });
+
+    // Then
+    expect(project.createdAt).toEqual(new Date('2026-10-01T00:00:00.000Z'));
+    expect(project.archivedAt).toEqual(new Date('2026-10-02T00:00:00.000Z'));
+  });
+
+  test('DB를 직접 고쳐 깨진 행을 바로 찾도록 시각으로 읽을 수 없으면 행 id와 열 이름을 담아 던진다', async () => {
+    // Given: 시각으로 읽을 수 없는 created_at을 직접 넣음
+    await dataSource.query(
+      `INSERT INTO projects (id, name, color, created_at) VALUES (7, '가계부', 'teal', '')`,
+    );
+
+    // When
+    const attempt = repository.findAll({ includeArchived: true });
+
+    // Then
+    await expect(attempt).rejects.toThrow('projects.created_at 시각 형식이 잘못됨: id=7');
+  });
+});
+
+describe('저장할 필드 고르기', () => {
+  test('요청 검증이 느슨해져도 엔티티가 오염되지 않도록 추가 입력의 모르는 필드는 저장하지 않는다', async () => {
+    // Given: 타입에 없는 id, archivedAt이 실행 중에 섞여 들어온 입력
+    const input = { name: '독서 기록', color: 'indigo' as const, id: 999, archivedAt: 'x' };
+
+    // When
+    const project = await repository.create(input);
+
+    // Then: 999번 행은 생기지 않고, 저장된 행은 아카이브되지 않음
+    const stored = await repository.findById(project.id);
+    const forged = await repository.findById(999);
+    expect(forged).toBeNull();
+    expect(stored).toEqual(project);
+    expect(project.archivedAt).toBeNull();
+  });
+
+  test('수정으로 아카이브나 id가 바뀌지 않도록 수정 입력의 모르는 필드는 저장하지 않는다', async () => {
+    // Given
+    const blog = await repository.create({ name: '블로그', color: 'sky' });
+    const changes = { color: 'rose' as const, id: 999, archivedAt: '2026-10-02T00:00:00.000Z' };
+
+    // When
+    const updated = await repository.update(blog.id, changes);
+
+    // Then: 반환값과 저장된 행 모두 색만 바뀜
+    const stored = await repository.findById(blog.id);
+    const expected = { ...blog, color: 'rose' };
+    expect(updated).toEqual(expected);
+    expect(stored).toEqual(expected);
+  });
+});

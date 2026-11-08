@@ -67,6 +67,25 @@ export default defineConfig(
     },
   },
   {
+    // 3층 분리: 계약(HTTP 모양)은 컨트롤러와 응답 변환만 알고, service와 저장소는 도메인 타입만 씀
+    files: ['apps/api/src/modules/**/*.ts'],
+    ignores: ['**/*.controller.ts', '**/*.mapper.ts', '**/*.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@lokibench/contracts',
+              message:
+                '도메인 타입은 같은 모듈의 *.model.ts에서 가져오고, 계약 변환은 컨트롤러와 *.mapper.ts에서 함',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['apps/web/**/*.{ts,tsx}'],
     extends: [reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
     languageOptions: { globals: globals.browser },

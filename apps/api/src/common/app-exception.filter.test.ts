@@ -1,8 +1,8 @@
 import { Logger } from '@nestjs/common';
 import { ExecutionContextHost } from '@nestjs/core/helpers/execution-context-host';
 
-import { AppError } from './app-error';
 import { AppExceptionFilter } from './app-exception.filter';
+import { DomainError } from './domain-error';
 
 // express Response 중 필터가 쓰는 status, json만 흉내 내고 결과를 기록함
 function createFakeResponse() {
@@ -32,9 +32,9 @@ beforeAll(() => {
 });
 
 describe('서비스가 던진 오류', () => {
-  test('서비스가 정한 코드를 지키기 위해 AppError는 담긴 코드와 details를 그대로 싣는다', () => {
+  test('서비스가 정한 코드를 지키기 위해 DomainError는 담긴 코드와 details를 그대로 싣는다', () => {
     // Given: 이름 중복으로 서비스가 던진 오류
-    const exception = new AppError('PROJECT_NAME_TAKEN', '같은 이름이 있음', { id: 1 });
+    const exception = new DomainError('PROJECT_NAME_TAKEN', '같은 이름이 있음', { id: 1 });
 
     // When
     const sent = runFilter(exception);
@@ -50,7 +50,7 @@ describe('서비스가 던진 오류', () => {
 
   test('details가 없으면 응답에도 details 칸을 두지 않는다', () => {
     // Given
-    const exception = new AppError('PROJECT_NOT_FOUND');
+    const exception = new DomainError('PROJECT_NOT_FOUND');
 
     // When
     const sent = runFilter(exception);

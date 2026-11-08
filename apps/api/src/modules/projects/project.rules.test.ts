@@ -1,6 +1,6 @@
-import type { ProjectColor } from '@lokibench/contracts';
+import type { ProjectColor } from '@lokibench/domain';
 
-import { pickProjectColor } from './pick-project-color';
+import { pickProjectColor } from './project.rules';
 
 // 아카이브되지 않아 화면에 보이는 프로젝트를 만듦
 function active(color: ProjectColor) {
@@ -52,7 +52,7 @@ describe('새 프로젝트 색 자동 배정', () => {
   test('숨겨진 프로젝트 색은 화면에서 겹치지 않으므로 아카이브된 프로젝트는 세지 않는다', () => {
     // Given: sky는 아카이브된 프로젝트만 쓰고, 나머지 5색은 한 번씩 쓰임
     const projects = [
-      { color: 'sky' as const, archivedAt: '2026-10-01T00:00:00.000Z' },
+      { color: 'sky' as const, archivedAt: new Date('2026-10-01T00:00:00.000Z') },
       active('indigo'),
       active('teal'),
       active('violet'),

@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 
 import { DomainError } from '../../common/domain-error';
-import { pickProjectColor } from './pick-project-color';
 import type { CreateProjectCommand, Project, UpdateProjectCommand } from './project.model';
 import { ProjectRepository } from './project.repository';
+import { pickProjectColor } from './project.rules';
 
 /**
  * 프로젝트의 이름 유일, 색 자동 배정 규칙을 지켜 목록, 추가, 수정을 처리한다.
@@ -35,7 +35,8 @@ export class ProjectsService {
     }
 
     const projects = await this.repository.findAll({ includeArchived: true });
-    return this.repository.create({ ...command, color: pickProjectColor(projects) });
+    const color = pickProjectColor(projects);
+    return this.repository.create({ ...command, color });
   }
 
   /**

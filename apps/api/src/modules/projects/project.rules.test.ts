@@ -1,6 +1,6 @@
 import type { ProjectColor } from '@lokibench/domain';
 
-import { pickProjectColor } from './pick-project-color';
+import { pickProjectColor } from './project.rules';
 
 // 아카이브되지 않아 화면에 보이는 프로젝트를 만듦
 function active(color: ProjectColor) {

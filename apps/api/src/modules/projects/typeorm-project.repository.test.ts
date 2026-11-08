@@ -67,6 +67,19 @@ describe('도메인 모양', () => {
     expect(project.createdAt).toEqual(new Date('2026-10-01T00:00:00.000Z'));
     expect(project.archivedAt).toEqual(new Date('2026-10-02T00:00:00.000Z'));
   });
+
+  test('DB를 직접 고쳐 깨진 행을 바로 찾도록 시각으로 읽을 수 없으면 행 id와 열 이름을 담아 던진다', async () => {
+    // Given: 시각으로 읽을 수 없는 created_at을 직접 넣음
+    await dataSource.query(
+      `INSERT INTO projects (id, name, color, created_at) VALUES (7, '가계부', 'teal', '')`,
+    );
+
+    // When
+    const attempt = repository.findAll({ includeArchived: true });
+
+    // Then
+    await expect(attempt).rejects.toThrow('projects.created_at 시각 형식이 잘못됨: id=7');
+  });
 });
 
 describe('저장할 필드 고르기', () => {

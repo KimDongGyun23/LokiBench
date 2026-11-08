@@ -1,4 +1,5 @@
-import type { Project, ProjectColor } from '@lokibench/contracts';
+import type { Project } from '@lokibench/contracts';
+import type { ProjectColor } from '@lokibench/domain';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, QueryFailedError, type Repository } from 'typeorm';

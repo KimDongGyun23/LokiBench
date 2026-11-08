@@ -1,4 +1,4 @@
-import type { ProjectColor } from '@lokibench/contracts';
+import type { ProjectColor } from '@lokibench/domain';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 /**

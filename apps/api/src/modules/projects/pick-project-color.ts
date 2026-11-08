@@ -1,4 +1,4 @@
-import { PROJECT_COLORS, type ProjectColor } from '@lokibench/contracts';
+import { PROJECT_COLORS, type ProjectColor } from '@lokibench/domain';
 
 /**
  * 새 프로젝트에 줄 색을 고른다.

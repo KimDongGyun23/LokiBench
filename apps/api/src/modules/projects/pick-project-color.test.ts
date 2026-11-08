@@ -1,4 +1,4 @@
-import type { ProjectColor } from '@lokibench/contracts';
+import type { ProjectColor } from '@lokibench/domain';
 
 import { pickProjectColor } from './pick-project-color';
 

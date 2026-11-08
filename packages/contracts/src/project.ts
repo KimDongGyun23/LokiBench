@@ -1,12 +1,7 @@
+import { PROJECT_COLORS, PROJECT_NAME_MAX_LENGTH } from '@lokibench/domain';
 import { z } from 'zod';
 
-// 배열 순서가 새 프로젝트 색 자동 배정 순서임
-export const PROJECT_COLORS = ['indigo', 'sky', 'teal', 'violet', 'rose', 'orange'] as const;
 export const projectColorSchema = z.enum(PROJECT_COLORS);
-export type ProjectColor = z.infer<typeof projectColorSchema>;
-
-// 사이드바처럼 좁은 곳에서도 말줄임으로 버틸 수 있는 길이 기준
-export const PROJECT_NAME_MAX_LENGTH = 40;
 
 // 앞뒤 공백을 먼저 지워서 길이와 같은 이름 판단을 본문 기준으로 함
 export const projectNameSchema = z.string().trim().min(1).max(PROJECT_NAME_MAX_LENGTH);

@@ -1,4 +1,5 @@
-import type { Project, ProjectColor } from '@lokibench/contracts';
+import type { Project } from '@lokibench/contracts';
+import type { ProjectColor } from '@lokibench/domain';
 
 /**
  * 프로젝트 저장소의 약속이다.

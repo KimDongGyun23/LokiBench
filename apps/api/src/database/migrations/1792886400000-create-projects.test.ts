@@ -2,9 +2,9 @@ import { DataSource } from 'typeorm';
 
 import { createDataSourceOptions } from '../data-source-options';
 
-// 계약의 팔레트에 새 색이 더해진 미래 상황을 흉내 냄
-vi.mock('@lokibench/contracts', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@lokibench/contracts')>();
+// 도메인의 팔레트에 새 색이 더해진 미래 상황을 흉내 냄
+vi.mock('@lokibench/domain', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@lokibench/domain')>();
   return { ...original, PROJECT_COLORS: [...original.PROJECT_COLORS, 'lime'] };
 });
 
@@ -16,7 +16,7 @@ afterEach(async () => {
 });
 
 describe('projects 테이블 색 제약', () => {
-  test('DB마다 제약이 달라지지 않도록 계약의 팔레트가 바뀌어도 처음 정한 6색만 허용한다', async () => {
+  test('DB마다 제약이 달라지지 않도록 도메인의 팔레트가 바뀌어도 처음 정한 6색만 허용한다', async () => {
     // Given: 팔레트에 lime이 더해진 상태에서 마이그레이션 실행
     dataSource = await new DataSource(createDataSourceOptions(':memory:')).initialize();
 

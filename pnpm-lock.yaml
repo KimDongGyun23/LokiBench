@@ -6,6 +6,9 @@ settings:
 
 catalogs:
   default:
+    '@types/node':
+      specifier: ^24.19.2
+      version: 24.19.2
     typescript:
       specifier: ~6.0.3
       version: 6.0.3
@@ -118,7 +121,7 @@ importers:
         specifier: ^5.0.6
         version: 5.0.6
       '@types/node':
-        specifier: ^24.19.2
+        specifier: 'catalog:'
         version: 24.19.2
       '@types/supertest':
         specifier: ^7.2.1

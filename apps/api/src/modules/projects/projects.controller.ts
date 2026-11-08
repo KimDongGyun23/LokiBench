@@ -17,7 +17,7 @@ class UpdateProjectDto extends createZodDto(updateProjectRequestSchema) {}
  * 프로젝트 목록, 추가, 수정 경로를 연다. (/api/projects)
  *
  * - 요청 검증만 맡고 규칙은 service에 맡긴다
- * - 계약을 아는 곳은 여기뿐이라 요청을 도메인 값으로, 결과를 응답 모양으로 바꾼다
+ * - 계약을 아는 곳은 컨트롤러와 mapper뿐이라, 결과를 mapper로 응답 모양으로 바꾼다
  */
 @Controller('projects')
 export class ProjectsController {

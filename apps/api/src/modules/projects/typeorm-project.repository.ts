@@ -10,7 +10,7 @@ import { ProjectRepository } from './project.repository';
 /**
  * sqlite에 프로젝트를 읽고 쓰는 저장소 구현체다.
  *
- * - 엔티티는 밖으로 내보내지 않고 계약의 Project로 바꿔서 돌려준다
+ * - 엔티티는 밖으로 내보내지 않고 도메인 Project로 바꿔서 돌려준다
  */
 @Injectable()
 export class TypeOrmProjectRepository extends ProjectRepository {
@@ -61,7 +61,7 @@ export class TypeOrmProjectRepository extends ProjectRepository {
     return toProjectModel(entity);
   }
 
-  // service 조회를 지나친 동시 요청도 500이 아니라 409가 되도록 UNIQUE 위반을 계약 오류로 바꿈
+  // service 조회를 지나친 동시 요청도 알 수 없는 오류가 아니라 이름 중복으로 알리도록 UNIQUE 위반을 도메인 오류로 바꿈
   private async saveOrThrowNameTaken(entity: ProjectEntity): Promise<void> {
     try {
       await this.repository.save(entity);

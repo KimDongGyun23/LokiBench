@@ -8,7 +8,7 @@ import { pickProjectColor } from './project.rules';
 /**
  * 프로젝트의 이름 유일, 색 자동 배정 규칙을 지켜 목록, 추가, 수정을 처리한다.
  *
- * - 이름 중복은 먼저 조회해서 409로 막고, 그 사이 끼어든 중복은 저장소가 DB 제약에서 막는다
+ * - 이름 중복은 먼저 조회해서 PROJECT_NAME_TAKEN으로 막고, 그 사이 끼어든 중복은 저장소가 DB 제약에서 막는다
  */
 @Injectable()
 export class ProjectsService {
@@ -26,7 +26,9 @@ export class ProjectsService {
   /**
    * 새 프로젝트를 만들고 색을 자동으로 정한다.
    *
-   * @param command 공백이 지워진 이름 (색은 여기서 정하므로 받지 않음)
+   * - 색은 여기서 정하므로 command로 받지 않는다
+   *
+   * @param command 공백이 지워진 이름
    * @returns 저장된 프로젝트
    */
   async create(command: CreateProjectCommand): Promise<Project> {

@@ -1,0 +1,43 @@
+/* 색 토큰 (다크) */
+:root {
+  color-scheme: dark;
+
+  --canvas: #111315;
+  --lane: #16181a;
+  --side: #191b1d;
+  --bg: #1a1d1f;
+  --head: #1e2123;
+  --raised: #25282a;
+  --muted: #2b2e30;
+  --border: #2e3134;
+  --line: #1f2224;
+
+  --fg: #eef0f1;
+  --muted-fg: #8d9296;
+  --faint: #5c6166;
+
+  --primary: #eef0f1;
+  --primary-hover: #ffffff;
+  --primary-fg: #111315;
+
+  --yellow: #ffef99;
+  --lime: #a7ff99;
+  --sky: #a8d5fe;
+  --mint: #b7e4cc;
+  --peach: #ffc895;
+  --coral: #ff9595;
+  --lilac: #cbb6e4;
+
+  --ring: rgba(168, 213, 254, 0.35);
+  --ring-error: rgba(255, 149, 149, 0.2);
+
+  /* 컨트롤 크기: sm, md, lg */
+  --control-h-sm: 28px;
+  --control-h-md: 32px;
+  --control-h-lg: 40px;
+  --control-text-sm: 12px;
+  --control-text-md: 13px;
+  --control-text-lg: 15px;
+  --control-radius-sm: 6px;
+  --control-radius-md: 8px;
+}

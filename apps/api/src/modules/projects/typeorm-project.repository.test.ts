@@ -90,8 +90,11 @@ describe('저장할 필드 고르기', () => {
     // When
     const project = await repository.create(input);
 
-    // Then: id는 DB가 정하고, 새 프로젝트는 아카이브되지 않음
-    expect(project.id).not.toBe(999);
+    // Then: 999번 행은 생기지 않고, 저장된 행은 아카이브되지 않음
+    const stored = await repository.findById(project.id);
+    const forged = await repository.findById(999);
+    expect(forged).toBeNull();
+    expect(stored).toEqual(project);
     expect(project.archivedAt).toBeNull();
   });
 
@@ -103,7 +106,10 @@ describe('저장할 필드 고르기', () => {
     // When
     const updated = await repository.update(blog.id, changes);
 
-    // Then: 색만 바뀜
-    expect(updated).toEqual({ ...blog, color: 'rose' });
+    // Then: 반환값과 저장된 행 모두 색만 바뀜
+    const stored = await repository.findById(blog.id);
+    const expected = { ...blog, color: 'rose' };
+    expect(updated).toEqual(expected);
+    expect(stored).toEqual(expected);
   });
 });

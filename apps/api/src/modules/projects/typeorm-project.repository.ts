@@ -39,8 +39,10 @@ export class TypeOrmProjectRepository extends ProjectRepository {
   }
 
   async create(input: CreateProjectInput): Promise<Project> {
+    // 타입에 없는 필드가 실행 중에 섞여 와도 엔티티에 들어가지 않게 저장할 필드를 직접 고름
     const entity = this.repository.create({
-      ...input,
+      name: input.name,
+      color: input.color,
       createdAt: new Date().toISOString(),
       archivedAt: null,
     });
@@ -52,7 +54,9 @@ export class TypeOrmProjectRepository extends ProjectRepository {
     const entity = await this.repository.findOneBy({ id });
     if (!entity) return null;
 
-    this.repository.merge(entity, changes);
+    if (changes.name !== undefined) entity.name = changes.name;
+    if (changes.color !== undefined) entity.color = changes.color;
+
     await this.saveOrThrowNameTaken(entity);
     return toProjectModel(entity);
   }

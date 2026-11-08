@@ -68,3 +68,29 @@ describe('도메인 모양', () => {
     expect(project.archivedAt).toEqual(new Date('2026-10-02T00:00:00.000Z'));
   });
 });
+
+describe('저장할 필드 고르기', () => {
+  test('요청 검증이 느슨해져도 엔티티가 오염되지 않도록 추가 입력의 모르는 필드는 저장하지 않는다', async () => {
+    // Given: 타입에 없는 id, archivedAt이 실행 중에 섞여 들어온 입력
+    const input = { name: '독서 기록', color: 'indigo' as const, id: 999, archivedAt: 'x' };
+
+    // When
+    const project = await repository.create(input);
+
+    // Then: id는 DB가 정하고, 새 프로젝트는 아카이브되지 않음
+    expect(project.id).not.toBe(999);
+    expect(project.archivedAt).toBeNull();
+  });
+
+  test('수정으로 아카이브나 id가 바뀌지 않도록 수정 입력의 모르는 필드는 저장하지 않는다', async () => {
+    // Given
+    const blog = await repository.create({ name: '블로그', color: 'sky' });
+    const changes = { color: 'rose' as const, id: 999, archivedAt: '2026-10-02T00:00:00.000Z' };
+
+    // When
+    const updated = await repository.update(blog.id, changes);
+
+    // Then: 색만 바뀜
+    expect(updated).toEqual({ ...blog, color: 'rose' });
+  });
+});

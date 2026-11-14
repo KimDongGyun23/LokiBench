@@ -45,6 +45,19 @@ describe('사이드바', () => {
     expect(screen.getByRole('link', { name: '대시보드' })).not.toHaveAttribute('aria-current');
   });
 
+  test('어느 프로젝트를 보고 있는지 알 수 있도록 프로젝트 화면에서는 그 프로젝트 항목만 선택 상태로 둔다', async () => {
+    // When
+    renderApp({ route: '/projects/2' });
+
+    // Then
+    expect(await screen.findByRole('link', { name: '가계부' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(screen.getByRole('link', { name: '독서 기록' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: '프로젝트 관리' })).not.toHaveAttribute('aria-current');
+  });
+
   test('api가 꺼져 있어도 다른 화면으로 갈 수 있도록 프로젝트 묶음에만 불러오기 실패를 보인다', async () => {
     // Given
     server.use(http.get('/api/projects', () => HttpResponse.error()));

@@ -114,6 +114,19 @@ describe('경로', () => {
     );
   });
 
+  test.each(['01', '1.0', '1e0', '0x1', '%201'])(
+    '화면과 사이드바 선택이 어긋나지 않도록 양의 정수 표기가 아닌 id %s 는 없는 프로젝트로 알린다',
+    async (projectId) => {
+      // When
+      renderApp({ route: `/projects/${projectId}` });
+
+      // Then
+      expect(
+        await screen.findByRole('heading', { name: '존재하지 않는 프로젝트' }),
+      ).toBeInTheDocument();
+    },
+  );
+
   test('주소가 가리키는 프로젝트를 알 수 있도록 프로젝트 화면 제목에 그 이름을 보인다', async () => {
     // When
     renderApp({ route: '/projects/2' });

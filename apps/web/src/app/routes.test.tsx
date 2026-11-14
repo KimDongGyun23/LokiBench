@@ -99,6 +99,23 @@ describe('사이드바', () => {
   });
 });
 
+describe('공통 틀', () => {
+  test('새 화면을 처음부터 볼 수 있도록 다른 화면으로 옮기면 본문 스크롤을 맨 위로 돌린다', async () => {
+    // Given
+    const user = userEvent.setup();
+    renderApp({ route: '/dashboard' });
+    const main = screen.getByRole('main');
+    main.scrollTop = 120;
+
+    // When
+    await user.click(screen.getByRole('link', { name: '오늘' }));
+
+    // Then
+    expect(await screen.findByRole('heading', { name: '오늘' })).toBeInTheDocument();
+    expect(main.scrollTop).toBe(0);
+  });
+});
+
 describe('경로', () => {
   test('지워졌거나 잘못된 주소에서 길을 잃지 않도록 없는 프로젝트 id는 대시보드로 가는 길과 함께 알린다', async () => {
     // When

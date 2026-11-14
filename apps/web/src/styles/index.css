@@ -38,6 +38,8 @@
   --color-peach: var(--peach);
   --color-coral: var(--coral);
   --color-lilac: var(--lilac);
+  --color-mint-deep: var(--mint-deep);
+  --color-coral-deep: var(--coral-deep);
 
   --color-ring: var(--ring);
   --color-ring-error: var(--ring-error);

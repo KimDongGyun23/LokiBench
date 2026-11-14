@@ -2,6 +2,7 @@ import { replace, type RouteObject } from 'react-router';
 
 import { EmptyState } from '@/components/EmptyState';
 import { TopBar } from '@/components/TopBar';
+import { ErrorPage } from '@/screens/error/ErrorPage';
 import { NotFoundPage } from '@/screens/not-found/NotFoundPage';
 import { ProjectPage } from '@/screens/project/ProjectPage';
 
@@ -45,15 +46,26 @@ function toPlaceholderRoute({ path, title, featureNumber }: PlaceholderPageEntry
   };
 }
 
-// 주소마다 보일 화면. 모든 화면은 사이드바가 있는 같은 틀(AppLayout) 안에 그려짐
+/**
+ * 주소마다 보일 화면
+ *
+ * - 모든 화면은 사이드바가 있는 같은 틀(AppLayout) 안에 그려짐
+ * - 화면이 그리다 오류를 던지면 틀은 남기고 본문 자리에만 오류 화면을 그림
+ */
 export const routes: RouteObject[] = [
   {
     element: <AppLayout />,
+    errorElement: <ErrorPage />,
     children: [
-      { index: true, loader: () => replace('/dashboard') },
-      { path: 'projects/:projectId', element: <ProjectPage /> },
-      ...PLACEHOLDER_PAGES.map(toPlaceholderRoute),
-      { path: '*', element: <NotFoundPage /> },
+      {
+        errorElement: <ErrorPage />,
+        children: [
+          { index: true, loader: () => replace('/dashboard') },
+          { path: 'projects/:projectId', element: <ProjectPage /> },
+          ...PLACEHOLDER_PAGES.map(toPlaceholderRoute),
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
     ],
   },
 ];

@@ -1,17 +1,26 @@
 import { toast } from 'sonner';
 
-// 토스트가 떠 있는 기본 시간
-const DEFAULT_DURATION_MS = 3000;
+// 토스트가 떠 있는 시간 단계. 짧은 완료 문구는 short, 길수록 medium, long을 씀
+const TOAST_DURATION_MS = {
+  short: 3000,
+  medium: 5000,
+  long: 8000,
+} as const;
+
+// 토스트가 떠 있는 시간 단계의 이름
+type ToastDuration = keyof typeof TOAST_DURATION_MS;
+
+const DEFAULT_DURATION: ToastDuration = 'short';
 
 interface NotifyOptions {
-  duration?: number;
+  duration?: ToastDuration;
 }
 
 /**
  * 어느 화면에서나 토스트를 띄우는 입구.
  *
  * - success는 초록 체크 아이콘, error는 빨간 경고 아이콘으로 뜬다
- * - 닫히는 시간을 주지 않으면 3초 뒤 스스로 닫힌다
+ * - 떠 있는 시간은 short(3초), medium(5초), long(8초) 중에서 고르고 기본은 short다
  * - 화면에 보이려면 앱에 Toaster가 한 번 놓여 있어야 한다
  */
 export const notify = {
@@ -19,19 +28,23 @@ export const notify = {
    * 완료 토스트를 띄운다. (초록 체크 아이콘)
    *
    * @param message 보여 줄 문구
-   * @param options.duration 떠 있는 시간(ms). 기본 3초
+   * @param options.duration 떠 있는 시간 단계. 기본 short
    */
   success(message: string, options: NotifyOptions = {}): void {
-    toast.success(message, { duration: options.duration ?? DEFAULT_DURATION_MS });
+    toast.success(message, {
+      duration: TOAST_DURATION_MS[options.duration ?? DEFAULT_DURATION],
+    });
   },
 
   /**
    * 오류 토스트를 띄운다. (빨간 경고 아이콘)
    *
    * @param message 보여 줄 문구
-   * @param options.duration 떠 있는 시간(ms). 기본 3초
+   * @param options.duration 떠 있는 시간 단계. 기본 short
    */
   error(message: string, options: NotifyOptions = {}): void {
-    toast.error(message, { duration: options.duration ?? DEFAULT_DURATION_MS });
+    toast.error(message, {
+      duration: TOAST_DURATION_MS[options.duration ?? DEFAULT_DURATION],
+    });
   },
 };

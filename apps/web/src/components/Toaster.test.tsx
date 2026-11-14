@@ -54,21 +54,21 @@ describe('토스트 닫힘', () => {
     expect(screen.queryByText('색을 바꾸지 못함')).not.toBeInTheDocument();
   });
 
-  test('긴 문구를 읽을 시간을 주기 위해 닫히는 시간을 넘겨받으면 그 시간까지 남는다', () => {
+  test('긴 문구를 읽을 시간을 주기 위해 long 단계를 넘겨받으면 8초까지 남는다', () => {
     // Given
     render(<Toaster />);
     act(() => {
-      notify.error('같은 이름의 프로젝트가 이미 있음', { duration: 10_000 });
+      notify.error('같은 이름의 프로젝트가 이미 있음', { duration: 'long' });
     });
 
     // When: 기본 3초를 한참 넘김
-    advance(9000);
+    advance(7900);
 
     // Then
     expect(screen.getByText('같은 이름의 프로젝트가 이미 있음')).toBeInTheDocument();
 
-    // When: 넘겨받은 10초를 넘김
-    advance(2000);
+    // When: 8초를 넘김
+    advance(1000);
 
     // Then
     expect(screen.queryByText('같은 이름의 프로젝트가 이미 있음')).not.toBeInTheDocument();

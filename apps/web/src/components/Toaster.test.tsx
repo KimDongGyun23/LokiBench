@@ -1,4 +1,5 @@
 import { act, render, screen } from '@testing-library/react';
+import { toast } from 'sonner';
 
 import { notify } from '@/lib/toast';
 
@@ -17,7 +18,12 @@ beforeEach(() => {
   vi.useFakeTimers();
 });
 
+// sonner는 토스트 목록을 모듈 전역에 들고 있어서, 남은 토스트가 다음 테스트에 보이지 않게 지움
 afterEach(() => {
+  act(() => {
+    toast.dismiss();
+  });
+  advance(1000);
   vi.useRealTimers();
 });
 
@@ -72,5 +78,37 @@ describe('토스트 닫힘', () => {
 
     // Then
     expect(screen.queryByText('같은 이름의 프로젝트가 이미 있음')).not.toBeInTheDocument();
+  });
+});
+
+describe('토스트 종류', () => {
+  test('색을 구분하지 못해도 결과를 알 수 있도록 완료 토스트에 이름 있는 완료 아이콘이 붙는다', () => {
+    // Given
+    render(<Toaster />);
+
+    // When
+    act(() => {
+      notify.success('프로젝트 가계부 추가됨');
+    });
+    advance(100);
+
+    // Then
+    expect(screen.getByRole('img', { name: '완료' })).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: '오류' })).not.toBeInTheDocument();
+  });
+
+  test('실패를 완료로 읽지 않도록 오류 토스트에 이름 있는 오류 아이콘이 붙는다', () => {
+    // Given
+    render(<Toaster />);
+
+    // When
+    act(() => {
+      notify.error('색을 바꾸지 못함');
+    });
+    advance(100);
+
+    // Then
+    expect(screen.getByRole('img', { name: '오류' })).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: '완료' })).not.toBeInTheDocument();
   });
 });

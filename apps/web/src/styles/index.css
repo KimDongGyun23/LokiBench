@@ -1,0 +1,66 @@
+@import 'tailwindcss';
+@import './tokens.css';
+
+@font-face {
+  font-family: 'Wanted Sans Variable';
+  src: url('/fonts/WantedSansVariable.woff2') format('woff2-variations');
+  font-weight: 400 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme inline {
+  --font-sans: 'Wanted Sans Variable', 'Apple SD Gothic Neo', system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-canvas: var(--canvas);
+  --color-lane: var(--lane);
+  --color-side: var(--side);
+  --color-surface: var(--bg);
+  --color-head: var(--head);
+  --color-raised: var(--raised);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-line: var(--line);
+
+  --color-fg: var(--fg);
+  --color-muted-fg: var(--muted-fg);
+  --color-faint: var(--faint);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-fg: var(--primary-fg);
+
+  --color-yellow: var(--yellow);
+  --color-lime: var(--lime);
+  --color-sky: var(--sky);
+  --color-mint: var(--mint);
+  --color-peach: var(--peach);
+  --color-coral: var(--coral);
+  --color-lilac: var(--lilac);
+
+  --color-ring: var(--ring);
+  --color-ring-error: var(--ring-error);
+
+  --spacing-control-sm: var(--control-h-sm);
+  --spacing-control-md: var(--control-h-md);
+  --spacing-control-lg: var(--control-h-lg);
+
+  --text-control-sm: var(--control-text-sm);
+  --text-control-md: var(--control-text-md);
+  --text-control-lg: var(--control-text-lg);
+
+  --radius-control-sm: var(--control-radius-sm);
+  --radius-control-md: var(--control-radius-md);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-canvas text-fg font-sans;
+    font-size: var(--control-text-md);
+    line-height: 1.45;
+  }
+}

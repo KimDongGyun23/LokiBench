@@ -40,4 +40,7 @@
   --control-text-lg: 15px;
   --control-radius-sm: 6px;
   --control-radius-md: 8px;
+
+  /* 레이아웃 */
+  --sidebar-width: 216px;
 }

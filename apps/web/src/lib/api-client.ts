@@ -6,19 +6,27 @@ const API_PREFIX = '/api';
 // 응답을 받지 못한 실패(네트워크, api 꺼짐)의 상태 값
 const NO_RESPONSE_STATUS = 0;
 
+interface ApiErrorOptions {
+  message?: string;
+  cause?: unknown;
+}
+
 /**
  * api 요청 실패를 계약의 오류 코드와 HTTP 상태로 나타낸다.
  *
  * - 화면은 상태가 아니라 code로 문구를 고른다
  * - 계약 밖 실패(네트워크, 알 수 없는 본문, 응답 모양 불일치)는 모두 INTERNAL이다
- * - 응답을 받지 못했으면 status는 0이다
+ * - 응답을 받지 못했으면 status는 0이고, fetch가 던진 원래 오류는 cause에 남는다
  */
 export class ApiError extends Error {
   readonly code: ErrorCode;
   readonly status: number;
 
-  constructor(code: ErrorCode, status: number, message: string = code) {
-    super(message);
+  constructor(code: ErrorCode, status: number, options: ApiErrorOptions = {}) {
+    const message = options.message ?? code;
+    const errorOptions = options.cause === undefined ? undefined : { cause: options.cause };
+
+    super(message, errorOptions);
     this.name = 'ApiError';
     this.code = code;
     this.status = status;
@@ -43,7 +51,7 @@ async function toApiError(response: Response): Promise<ApiError> {
   const parsed = errorResponseSchema.safeParse(await readJson(response));
   if (!parsed.success) return new ApiError('INTERNAL', response.status);
 
-  return new ApiError(parsed.data.code, response.status, parsed.data.message);
+  return new ApiError(parsed.data.code, response.status, { message: parsed.data.message });
 }
 
 /**
@@ -73,8 +81,8 @@ export async function apiRequest<T>(
   let response: Response;
   try {
     response = await fetch(`${API_PREFIX}${path}`, { ...init, headers });
-  } catch {
-    throw new ApiError('INTERNAL', NO_RESPONSE_STATUS);
+  } catch (error) {
+    throw new ApiError('INTERNAL', NO_RESPONSE_STATUS, { cause: error });
   }
 
   // 서버가 돌려준 실패 응답

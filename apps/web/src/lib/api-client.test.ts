@@ -83,6 +83,18 @@ describe('API 요청 실패', () => {
     expect(error).toMatchObject({ code: 'INTERNAL', status: 0 });
   });
 
+  test('실패 원인을 디버깅할 수 있도록 네트워크 실패의 원래 오류를 cause로 남긴다', async () => {
+    // Given
+    server.use(http.get('/api/books/1', () => HttpResponse.error()));
+
+    // When
+    const error = await catchError(apiRequest('/books/1', bookSchema));
+
+    // Then
+    if (!(error instanceof ApiError)) throw new Error('ApiError가 아님');
+    expect(error.cause).toBeInstanceOf(TypeError);
+  });
+
   test('프록시가 계약 밖 본문을 돌려줘도 화면이 같은 경로로 처리하도록 INTERNAL로 던지고 상태는 남긴다', async () => {
     // Given
     server.use(http.get('/api/books/1', () => new HttpResponse('Bad Gateway', { status: 502 })));

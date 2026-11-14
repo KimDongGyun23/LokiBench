@@ -15,12 +15,13 @@ const NO_FC_IMPORT = {
 
 // web 폴더 방향: app -> screens -> domains -> components, lib. 같은 층끼리는 가져오지 않음
 // 한 화면, 한 도메인 폴더 안은 ./ 로만 가져오고, 다른 폴더는 @/ 경로로 가져와야 규칙이 걸림
+// import()는 이 규칙이 검사하지 않으므로 지연 로딩은 맨 위 층인 app/에서만 함
 function webLayerRule(patterns) {
   return ['error', { paths: [NO_FC_IMPORT], patterns }];
 }
 
 const NO_PARENT_RELATIVE = {
-  regex: '^\\.\\./',
+  regex: '^(\\./)*\\.\\./',
   message: '다른 폴더는 @/ 경로로 가져옴 (방향 규칙 검사용)',
 };
 
@@ -130,7 +131,7 @@ export default defineConfig(
     rules: {
       'no-restricted-imports': webLayerRule([
         {
-          regex: '^(@/|(\\.\\./)+)(app|screens|domains)(/|$)',
+          regex: '^(@/|(\\./)*(\\.\\./)+)(app|screens|domains)(/|$)',
           message: '공용 코드는 도메인과 화면을 모름',
         },
       ]),

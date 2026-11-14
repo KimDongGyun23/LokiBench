@@ -4,7 +4,7 @@ import type { z } from 'zod';
 const API_PREFIX = '/api';
 
 // 응답을 받지 못한 실패(네트워크, api 꺼짐)의 상태 값
-const NO_RESPONSE_STATUS = 0;
+export const NO_RESPONSE_STATUS = 0;
 
 interface ApiErrorOptions {
   message?: string;

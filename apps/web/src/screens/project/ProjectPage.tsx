@@ -1,7 +1,7 @@
 import { useParams } from 'react-router';
 
 import { EmptyState } from '@/components/EmptyState';
-import { TopBar } from '@/components/TopBar';
+import { TopBar, TopBarSkeleton } from '@/components/TopBar';
 import { ProjectColorDot } from '@/domains/projects/ProjectColorDot';
 import { useProjectsQuery } from '@/domains/projects/queries';
 
@@ -9,13 +9,13 @@ import { useProjectsQuery } from '@/domains/projects/queries';
  * 주소의 프로젝트 id에 해당하는 프로젝트 화면을 그린다.
  *
  * - 목록에 없는 id면 존재하지 않는 프로젝트라는 안내와 대시보드로 가는 버튼을 보인다
- * - 목록을 받는 동안은 아무것도 그리지 않고, 받지 못하면 실패 문구를 보인다
+ * - 목록을 받는 동안은 제목 자리에 깜빡이는 줄을 보이고, 받지 못하면 실패 문구를 보인다
  */
 export function ProjectPage() {
   const { projectId } = useParams();
   const { data: projects, isPending, isError } = useProjectsQuery();
 
-  if (isPending) return null;
+  if (isPending) return <TopBarSkeleton label="프로젝트 불러오는 중" />;
   if (isError) return <EmptyState title="프로젝트를 불러오지 못했습니다" />;
 
   const project = projects.find((candidate) => candidate.id === Number(projectId));

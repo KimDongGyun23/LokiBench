@@ -4,8 +4,10 @@ import { NavLink } from 'react-router';
 
 import { BrandMark } from '@/components/BrandMark';
 import { Button } from '@/components/Button';
+import { Skeleton, SkeletonBar } from '@/components/Skeleton';
 import { ProjectColorDot } from '@/domains/projects/ProjectColorDot';
 import { useProjectsQuery } from '@/domains/projects/queries';
+import { cn } from '@/lib/cn';
 
 interface SidebarLinkProps {
   to: string;
@@ -41,16 +43,43 @@ function SidebarLink({ to, label, icon }: SidebarLinkProps) {
   );
 }
 
+// 프로젝트 목록을 받는 동안 보일 자리 표시 줄의 너비
+const PROJECT_SKELETON_WIDTHS = ['w-24', 'w-32', 'w-20'];
+
+/**
+ * 프로젝트 목록을 받는 동안 링크 자리에 깜빡이는 줄을 그린다.
+ *
+ * - 스크린 리더에는 불러오는 중이라는 상태 하나로 읽힌다
+ */
+function SidebarProjectsSkeleton() {
+  return (
+    <Skeleton
+      label="프로젝트 목록 불러오는 중"
+      className="flex flex-col gap-0.5"
+    >
+      {PROJECT_SKELETON_WIDTHS.map((width) => (
+        <div
+          key={width}
+          className="flex items-center gap-2.5 px-2 py-1.25"
+        >
+          <SkeletonBar className="size-6.5 shrink-0 rounded-lg" />
+          <SkeletonBar className={cn('h-3', width)} />
+        </div>
+      ))}
+    </Skeleton>
+  );
+}
+
 /**
  * 사이드바의 프로젝트 묶음을 만든 순서대로 그린다.
  *
- * - 목록을 받는 동안은 아무것도 그리지 않는다
+ * - 목록을 받는 동안과 다시 시도하는 동안은 자리 표시 줄을 보인다
  * - 받지 못하면 실패 문구와 다시 시도 버튼을 보인다
  */
 function SidebarProjects() {
   const { data: projects, isPending, isError, refetch } = useProjectsQuery();
 
-  if (isPending) return null;
+  if (isPending) return <SidebarProjectsSkeleton />;
   if (isError) {
     return (
       <div className="flex items-center justify-between gap-2 px-2 py-1">

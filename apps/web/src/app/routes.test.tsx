@@ -1,6 +1,7 @@
 import type { Project } from '@lokibench/contracts';
 import { screen } from '@testing-library/react';
-import { http, HttpResponse } from 'msw';
+import userEvent from '@testing-library/user-event';
+import { delay, http, HttpResponse } from 'msw';
 
 import { renderApp } from '@/test/render';
 import { server } from '@/test/server';
@@ -56,6 +57,46 @@ describe('사이드바', () => {
     expect(screen.getByRole('button', { name: '다시 시도' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: '대시보드' })).toBeInTheDocument();
   });
+
+  test('멈춘 것으로 오해하지 않도록 프로젝트 목록을 받는 동안 불러오는 중임을 보인다', async () => {
+    // Given
+    server.use(
+      http.get('/api/projects', async () => {
+        await delay(50);
+        return HttpResponse.json(PROJECTS);
+      }),
+    );
+
+    // When
+    renderApp({ route: '/dashboard' });
+
+    // Then
+    expect(screen.getByRole('status', { name: '프로젝트 목록 불러오는 중' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: '가계부' })).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: '프로젝트 목록 불러오는 중' })).toBeNull();
+  });
+
+  test('버튼이 눌렸음을 알 수 있도록 다시 시도를 누르면 불러오는 중임을 보이고 받은 목록을 그린다', async () => {
+    // Given
+    const user = userEvent.setup();
+    server.use(http.get('/api/projects', () => HttpResponse.error()));
+    renderApp({ route: '/dashboard' });
+    const retryButton = await screen.findByRole('button', { name: '다시 시도' });
+    server.use(
+      http.get('/api/projects', async () => {
+        await delay(50);
+        return HttpResponse.json(PROJECTS);
+      }),
+    );
+
+    // When
+    await user.click(retryButton);
+
+    // Then
+    expect(screen.getByRole('status', { name: '프로젝트 목록 불러오는 중' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: '가계부' })).toBeInTheDocument();
+    expect(screen.queryByText('불러오지 못함')).toBeNull();
+  });
 });
 
 describe('경로', () => {
@@ -79,6 +120,24 @@ describe('경로', () => {
 
     // Then
     expect(await screen.findByRole('heading', { name: '가계부' })).toBeInTheDocument();
+  });
+
+  test('멈춘 것으로 오해하지 않도록 프로젝트 화면은 목록을 받는 동안 불러오는 중임을 보인다', async () => {
+    // Given
+    server.use(
+      http.get('/api/projects', async () => {
+        await delay(50);
+        return HttpResponse.json(PROJECTS);
+      }),
+    );
+
+    // When
+    renderApp({ route: '/projects/2' });
+
+    // Then
+    expect(await screen.findByRole('status', { name: '프로젝트 불러오는 중' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '가계부' })).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: '프로젝트 불러오는 중' })).toBeNull();
   });
 
   test('잘못된 주소에서 길을 잃지 않도록 없는 경로는 대시보드로 가는 길과 함께 알린다', async () => {

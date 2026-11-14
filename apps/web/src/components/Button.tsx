@@ -36,6 +36,7 @@ interface ButtonProps extends ComponentProps<'button'>, VariantProps<typeof butt
  * - 키보드로 포커스하면 하늘색 테두리와 링이 생기고, disabled면 흐려지고 누를 수 없다
  * - type을 주지 않으면 button이라 폼 안에서 눌러도 제출되지 않는다
  * - asChild면 button 대신 링크 같은 자식 요소에 같은 모양을 입히고 type은 붙이지 않는다
+ * - 링크는 disabled를 지원하지 않아서 asChild로 링크를 쓰면 disabled가 적용되지 않는다
  *
  * @param props.variant 주요(primary) 또는 보조(secondary)
  * @param props.size sm 28px 또는 md 32px

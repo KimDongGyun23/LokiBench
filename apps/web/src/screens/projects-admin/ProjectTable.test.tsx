@@ -36,13 +36,13 @@ describe('프로젝트 표', () => {
     // Given, When: 만든 순서대로 프로젝트 3개를 받음
     renderProjectTable(PROJECTS);
 
-    // Then: 첫 줄은 표 머리
+    // Then: 첫 줄은 표 머리이고, 줄마다 이름 뒤에 수정 버튼이 붙음
     const rows = screen.getAllByRole('row');
     expect(rows.map((row) => row.textContent)).toEqual([
-      '프로젝트색상',
-      '독서 기록',
-      '가계부',
-      '블로그',
+      '프로젝트색상이름 수정',
+      '독서 기록수정',
+      '가계부수정',
+      '블로그수정',
     ]);
   });
 

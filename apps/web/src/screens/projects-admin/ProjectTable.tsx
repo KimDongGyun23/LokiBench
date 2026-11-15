@@ -48,9 +48,15 @@ export function ProjectTable({ projects }: ProjectTableProps) {
             </th>
             <th
               scope="col"
-              className="w-44.5 py-3 pr-5 pl-2.5 font-medium"
+              className="w-42 px-2.5 py-3 font-medium"
             >
               색상
+            </th>
+            <th
+              scope="col"
+              className="w-32 py-3 pr-5"
+            >
+              <span className="sr-only">이름 수정</span>
             </th>
           </tr>
         </thead>
@@ -64,7 +70,7 @@ export function ProjectTable({ projects }: ProjectTableProps) {
           {projects.length === 0 && (
             <tr className="border-line border-b">
               <td
-                colSpan={2}
+                colSpan={3}
                 className="text-faint px-5 py-3 leading-7"
               >
                 아직 프로젝트가 없습니다. 아래에서 새 프로젝트를 추가해 주세요.

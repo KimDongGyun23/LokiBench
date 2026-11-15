@@ -1,6 +1,6 @@
 import { replace, type RouteObject } from 'react-router';
 
-import { EmptyState } from '@/components/EmptyState';
+import { PageNotice } from '@/components/PageNotice';
 import { TopBar } from '@/components/TopBar';
 import { ErrorPage } from '@/screens/error/ErrorPage';
 import { NotFoundPage } from '@/screens/not-found/NotFoundPage';
@@ -37,7 +37,7 @@ function toPlaceholderRoute({ path, title, featureNumber }: PlaceholderPageEntry
     element: (
       <>
         <TopBar title={title} />
-        <EmptyState
+        <PageNotice
           title="준비 중인 화면"
           description={`${featureNumber}번 기능에서 구현됩니다.`}
         />

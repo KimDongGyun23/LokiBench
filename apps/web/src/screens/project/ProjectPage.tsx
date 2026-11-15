@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router';
 
-import { EmptyState } from '@/components/EmptyState';
+import { Button } from '@/components/Button';
+import { PageNotice } from '@/components/PageNotice';
 import { TopBar, TopBarSkeleton } from '@/components/TopBar';
 import { ProjectColorDot } from '@/domains/projects/ProjectColorDot';
 import { projectQueries } from '@/domains/projects/query-options';
@@ -17,15 +19,22 @@ export function ProjectPage() {
   const { data: projects, isPending, isError } = useQuery(projectQueries.list());
 
   if (isPending) return <TopBarSkeleton label="프로젝트 불러오는 중" />;
-  if (isError) return <EmptyState title="프로젝트를 불러오지 못했습니다" />;
+  if (isError) return <PageNotice title="프로젝트를 불러오지 못했습니다" />;
 
   const project = projects.find((candidate) => candidate.id === projectId);
   if (project === undefined) {
     return (
-      <EmptyState
+      <PageNotice
         title="존재하지 않는 프로젝트"
         description="주소가 잘못되었거나 삭제된 프로젝트입니다."
-        action={{ label: '대시보드로 이동', to: '/dashboard' }}
+        action={
+          <Button
+            asChild
+            variant="primary"
+          >
+            <Link to="/dashboard">대시보드로 이동</Link>
+          </Button>
+        }
       />
     );
   }
@@ -41,7 +50,7 @@ export function ProjectPage() {
           />
         }
       />
-      <EmptyState
+      <PageNotice
         title="준비 중인 화면"
         description="4번 기능에서 구현됩니다."
       />

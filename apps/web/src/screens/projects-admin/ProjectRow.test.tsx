@@ -3,6 +3,7 @@ import { QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { Toaster } from '@/components/Toaster';
@@ -95,10 +96,11 @@ function respondToRename(plan: RenameResponsePlan) {
 }
 
 /**
- * 받은 프로젝트 목록을 행으로 그린다.
+ * 받은 프로젝트 목록을 행으로 그리고, 어느 행을 고치는 중인지 기억한다.
  */
 function ProjectRows() {
   const { data: projects } = useQuery(projectQueries.list());
+  const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
 
   return (
     <table>
@@ -107,6 +109,10 @@ function ProjectRows() {
           <ProjectRow
             key={project.id}
             project={project}
+            isEditing={editingProjectId === project.id}
+            canEdit={editingProjectId === null}
+            onEditStart={() => setEditingProjectId(project.id)}
+            onEditEnd={() => setEditingProjectId(null)}
           />
         ))}
       </tbody>

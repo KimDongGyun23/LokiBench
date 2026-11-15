@@ -1,6 +1,7 @@
 import type { Project } from '@lokibench/contracts';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import { createQueryClient } from '@/lib/query-client';
 
@@ -54,5 +55,33 @@ describe('프로젝트 표', () => {
     expect(
       screen.getByText('아직 프로젝트가 없습니다. 아래에서 새 프로젝트를 추가해 주세요.'),
     ).toBeInTheDocument();
+  });
+
+  test('쓰던 이름을 잃지 않게 하기 위해 한 행을 고치는 동안에는 다른 행의 수정을 누를 수 없다', async () => {
+    // Given
+    const user = userEvent.setup();
+    renderProjectTable(PROJECTS);
+
+    // When: 가계부의 이름을 고치기 시작함
+    await user.click(screen.getByRole('button', { name: '가계부 이름 수정' }));
+
+    // Then
+    expect(screen.getByRole('button', { name: '독서 기록 이름 수정' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '블로그 이름 수정' })).toBeDisabled();
+  });
+
+  test('이어서 다른 이름을 고칠 수 있도록 고치기를 끝내면 모든 행의 수정을 다시 누를 수 있다', async () => {
+    // Given: 가계부의 이름을 고치는 중임
+    const user = userEvent.setup();
+    renderProjectTable(PROJECTS);
+    await user.click(screen.getByRole('button', { name: '가계부 이름 수정' }));
+
+    // When
+    await user.click(screen.getByRole('button', { name: '취소' }));
+
+    // Then
+    expect(screen.getByRole('button', { name: '독서 기록 이름 수정' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '가계부 이름 수정' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '블로그 이름 수정' })).toBeEnabled();
   });
 });

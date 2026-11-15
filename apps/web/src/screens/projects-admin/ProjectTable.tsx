@@ -1,4 +1,5 @@
 import type { Project } from '@lokibench/contracts';
+import { useState } from 'react';
 
 import { Skeleton, SkeletonBar } from '@/components/Skeleton';
 
@@ -28,10 +29,13 @@ interface ProjectTableProps {
  * 프로젝트를 한 줄씩 보여 주는 표와 그 아래의 추가 줄을 그린다.
  *
  * - 프로젝트가 없으면 어디서 추가하는지 안내하는 줄을 대신 보인다
+ * - 이름은 한 번에 한 행만 고칠 수 있어서, 한 행을 고치는 동안 다른 행의 수정은 누를 수 없다
  *
  * @param props.projects 표에 그릴 프로젝트 목록
  */
 export function ProjectTable({ projects }: ProjectTableProps) {
+  const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
+
   return (
     <div className="border-line bg-surface overflow-hidden rounded-xl border">
       <table
@@ -65,6 +69,10 @@ export function ProjectTable({ projects }: ProjectTableProps) {
             <ProjectRow
               key={project.id}
               project={project}
+              isEditing={editingProjectId === project.id}
+              canEdit={editingProjectId === null}
+              onEditStart={() => setEditingProjectId(project.id)}
+              onEditEnd={() => setEditingProjectId(null)}
             />
           ))}
           {projects.length === 0 && (

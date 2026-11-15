@@ -10,6 +10,7 @@ interface ProjectViewRowProps {
   project: Project;
   color: ProjectColor;
   onColorChange: (color: ProjectColor) => void;
+  canEdit: boolean;
   onEditStart: () => void;
 }
 
@@ -22,12 +23,14 @@ interface ProjectViewRowProps {
  * @param props.project 그릴 프로젝트
  * @param props.color 지금 보여 줄 색
  * @param props.onColorChange 다른 색을 눌렀을 때 그 색을 받는 함수
+ * @param props.canEdit 지금 수정을 누를 수 있는지
  * @param props.onEditStart 수정을 눌렀을 때 부르는 함수
  */
 export function ProjectViewRow({
   project,
   color,
   onColorChange,
+  canEdit,
   onEditStart,
 }: ProjectViewRowProps) {
   return (
@@ -58,6 +61,7 @@ export function ProjectViewRow({
           <Button
             size="sm"
             aria-label={`${project.name} 이름 수정`}
+            disabled={!canEdit}
             onClick={onEditStart}
           >
             수정

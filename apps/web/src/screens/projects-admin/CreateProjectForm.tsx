@@ -89,6 +89,7 @@ export function CreateProjectForm() {
         {hasError && (
           <p
             id={errorId}
+            role="alert"
             className="text-coral mt-1.25 text-[11.5px]"
           >
             {errorMessage}

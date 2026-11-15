@@ -155,6 +155,18 @@ describe('프로젝트 추가 오류', () => {
     expect(input).toHaveAccessibleDescription('이름을 입력해 주세요.');
   });
 
+  test('화면을 보지 않아도 오류를 알 수 있도록 오류 문구가 나타나면 스크린 리더가 바로 읽는다', async () => {
+    // Given
+    const user = userEvent.setup();
+    renderCreateProjectForm();
+
+    // When: 빈 채로 추가를 누름
+    await user.click(screen.getByRole('button', { name: '추가' }));
+
+    // Then
+    expect(screen.getByRole('alert')).toHaveTextContent('이름을 입력해 주세요.');
+  });
+
   test('고친 뒤에도 오류가 남아 보이지 않게 하기 위해 입력이 바뀌면 오류를 지운다', async () => {
     // Given: 빈 이름 오류가 보임
     const user = userEvent.setup();

@@ -2,7 +2,7 @@ import { createProjectRequestSchema, type Project } from '@lokibench/contracts';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { toast } from 'sonner';
 
 import { Toaster } from '@/components/Toaster';
@@ -108,9 +108,10 @@ describe('프로젝트 추가', () => {
     // When: 조합 중에 Enter를 누름
     fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
 
-    // Then
-    expect(input).toHaveValue('블로그');
+    // Then: 추가됐다면 완료 토스트가 떠 있을 만큼 기다린 뒤에도 그대로임
+    await delay(150);
     expect(screen.queryByText('블로그 프로젝트를 추가했습니다.')).not.toBeInTheDocument();
+    expect(input).toHaveValue('블로그');
   });
 
   test('길이 오류 문구를 없애기 위해 입력칸이 40자를 넘는 입력을 막는다', () => {

@@ -172,7 +172,7 @@ describe('프로젝트 추가 오류', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('이름을 입력해 주세요.');
   });
 
-  test('고친 뒤에도 오류가 남아 보이지 않게 하기 위해 입력이 바뀌면 오류를 지운다', async () => {
+  test('고친 뒤에도 오류가 남아 보이지 않게 하기 위해 고친 이름이 규칙에 맞으면 오류를 지운다', async () => {
     // Given: 빈 이름 오류가 보임
     const user = userEvent.setup();
     const input = renderCreateProjectForm();

@@ -42,9 +42,7 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
                 : 'cursor-pointer hover:scale-115',
             )}
             style={{ backgroundColor: PROJECT_COLOR_HEX[color] }}
-            onClick={() => {
-              handleColorClick(color);
-            }}
+            onClick={() => handleColorClick(color)}
           />
         );
       })}

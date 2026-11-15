@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { Archive, Calendar, CircleUserRound, Flag, LayoutGrid, Settings2, Sun } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router';
@@ -6,7 +7,7 @@ import { BrandMark } from '@/components/BrandMark';
 import { Button } from '@/components/Button';
 import { Skeleton, SkeletonBar } from '@/components/Skeleton';
 import { ProjectColorDot } from '@/domains/projects/ProjectColorDot';
-import { useProjectsQuery } from '@/domains/projects/queries';
+import { projectQueries } from '@/domains/projects/query-options';
 import { cn } from '@/lib/cn';
 
 interface SidebarLinkProps {
@@ -77,7 +78,7 @@ function SidebarProjectsSkeleton() {
  * - 받지 못하면 실패 문구와 다시 시도 버튼을 보인다
  */
 function SidebarProjects() {
-  const { data: projects, isPending, isError, refetch } = useProjectsQuery();
+  const { data: projects, isPending, isError, refetch } = useQuery(projectQueries.list());
 
   if (isPending) return <SidebarProjectsSkeleton />;
   if (isError) {

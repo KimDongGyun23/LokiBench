@@ -1,7 +1,9 @@
+import { useQuery } from '@tanstack/react-query';
+
 import { EmptyState } from '@/components/EmptyState';
 import { TopBar, TopBarSkeleton } from '@/components/TopBar';
 import { ProjectColorDot } from '@/domains/projects/ProjectColorDot';
-import { useProjectsQuery } from '@/domains/projects/queries';
+import { projectQueries } from '@/domains/projects/query-options';
 import { useProjectIdParam } from '@/domains/projects/useProjectIdParam';
 
 /**
@@ -12,7 +14,7 @@ import { useProjectIdParam } from '@/domains/projects/useProjectIdParam';
  */
 export function ProjectPage() {
   const projectId = useProjectIdParam();
-  const { data: projects, isPending, isError } = useProjectsQuery();
+  const { data: projects, isPending, isError } = useQuery(projectQueries.list());
 
   if (isPending) return <TopBarSkeleton label="프로젝트 불러오는 중" />;
   if (isError) return <EmptyState title="프로젝트를 불러오지 못했습니다" />;

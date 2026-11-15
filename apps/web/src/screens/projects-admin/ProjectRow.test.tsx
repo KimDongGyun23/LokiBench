@@ -1,6 +1,6 @@
 import { type Project, updateProjectRequestSchema } from '@lokibench/contracts';
 import { QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { useState } from 'react';
@@ -292,6 +292,30 @@ describe('프로젝트 이름 변경', () => {
     // Then
     expect(screen.queryByRole('textbox', { name: '가계부의 새 이름' })).not.toBeInTheDocument();
     expect(screen.getByText('가계부')).toBeInTheDocument();
+  });
+
+  test('취소했는데 이름이 바뀌는 일이 없게 하기 위해 저장하는 중에는 ESC를 눌러도 닫지 않는다', async () => {
+    // Given: 저장 응답이 늦게 옴
+    const user = userEvent.setup();
+    server.use(
+      http.patch('/api/projects/2', async () => {
+        await delay(200);
+
+        return HttpResponse.json({ ...BUDGET, name: '생활비' });
+      }),
+    );
+    const input = await renderEditingProjectRow();
+    await user.clear(input);
+    await user.type(input, '생활비{Enter}');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '저장' })).toBeDisabled();
+    });
+
+    // When
+    await user.type(input, '{Escape}');
+
+    // Then
+    expect(input).toBeInTheDocument();
   });
 
   test('다시 열었을 때 지난 오류가 보이지 않게 하기 위해 취소하면 오류도 함께 버린다', async () => {

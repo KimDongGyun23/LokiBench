@@ -32,6 +32,7 @@ interface ProjectEditRowProps {
  *
  * - 표에서는 행을 폼으로 감쌀 수 없어서, 이름 칸의 폼을 맨 끝 칸의 저장 버튼이 id로 가리켜 제출한다
  * - 이름이 그대로면 저장해도 요청하지 않고 닫는다
+ * - 저장하는 중에는 취소했는데 이름이 바뀌는 일이 없게 취소 버튼과 ESC도 막는다
  * - 이름이 비어 있거나 같은 이름이 이미 있으면 토스트 대신 입력칸 아래에 오류를 보인다
  * - 저장에 성공하면 목록에 새 이름이 온 뒤에 토스트 없이 닫는다
  * - 닫으면 입력한 글자와 오류가 함께 사라지도록, 고치는 동안에만 그린다
@@ -79,8 +80,14 @@ export function ProjectEditRow({ project, color, onColorChange, onEditEnd }: Pro
     rename({ projectId: project.id, name }, { onSuccess: onEditEnd, onError: handleRenameError });
   };
 
+  // 저장하는 중에 닫으면 취소한 것처럼 보이는데 이름은 바뀌므로, 저장이 끝날 때까지 닫지 않음
+  const handleCancel = () => {
+    if (isRenamePending) return;
+    onEditEnd();
+  };
+
   const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Escape') onEditEnd();
+    if (event.key === 'Escape') handleCancel();
   };
 
   return (
@@ -134,7 +141,8 @@ export function ProjectEditRow({ project, color, onColorChange, onEditEnd }: Pro
           </Button>
           <Button
             size="sm"
-            onClick={onEditEnd}
+            disabled={isRenamePending}
+            onClick={handleCancel}
           >
             취소
           </Button>

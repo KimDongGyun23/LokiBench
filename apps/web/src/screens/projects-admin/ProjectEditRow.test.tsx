@@ -105,6 +105,22 @@ describe('프로젝트 이름 고치는 행', () => {
     expect(input).toHaveAttribute('readonly');
   });
 
+  test('취소했는데 이름이 바뀌는 일이 없게 하기 위해 저장하는 중에는 취소 버튼을 막는다', async () => {
+    // Given: 저장 응답이 늦게 옴
+    const user = userEvent.setup();
+    respondToRename('slowSuccess');
+    const input = renderProjectEditRow();
+    await user.clear(input);
+
+    // When
+    await user.type(input, '생활비{Enter}');
+
+    // Then
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '취소' })).toBeDisabled();
+    });
+  });
+
   test('이름 없는 프로젝트가 생기지 않게 하기 위해 이름을 비우고 저장하면 입력칸 아래에 오류를 보인다', async () => {
     // Given
     const user = userEvent.setup();

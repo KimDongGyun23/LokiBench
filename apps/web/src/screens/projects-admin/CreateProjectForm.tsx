@@ -62,7 +62,6 @@ export function CreateProjectForm() {
   };
 
   const handleValidSubmit = ({ name }: ProjectNameFormValues) => {
-    if (isCreateProjectPending) return;
     createProject({ name }, { onSuccess: handleCreateSuccess, onError: handleCreateError });
   };
 

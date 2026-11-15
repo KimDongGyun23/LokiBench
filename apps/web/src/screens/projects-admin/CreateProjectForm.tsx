@@ -1,6 +1,8 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { type Project, projectNameSchema } from '@lokibench/contracts';
 import { useMutation } from '@tanstack/react-query';
-import { type ChangeEvent, type KeyboardEvent, useId, useState } from 'react';
+import { useId } from 'react';
+import { useForm } from 'react-hook-form';
 
 import { Button } from '@/components/Button';
 import { Field, FieldError } from '@/components/Field';
@@ -9,7 +11,11 @@ import { projectMutations } from '@/domains/projects/mutation-options';
 import { ApiError } from '@/lib/api-client';
 import { notify } from '@/lib/toast';
 
-import { isSubmitKey, NAME_TAKEN_MESSAGE, validateProjectName } from './project-name';
+import {
+  NAME_TAKEN_MESSAGE,
+  projectNameFormSchema,
+  type ProjectNameFormValues,
+} from './project-name';
 
 /**
  * 프로젝트 이름을 입력받아 새 프로젝트를 추가한다.
@@ -20,18 +26,27 @@ import { isSubmitKey, NAME_TAKEN_MESSAGE, validateProjectName } from './project-
  * - 추가하는 중에는 성공 뒤 입력칸을 비울 때 다음 이름이 지워지지 않게 입력도 받지 않는다
  */
 export function CreateProjectForm() {
-  const [name, setName] = useState('');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const hasError = errorMessage !== null;
   const errorId = useId();
-
   const { mutate: createProject, isPending: isCreateProjectPending } = useMutation(
     projectMutations.create(),
   );
 
+  const {
+    register,
+    handleSubmit,
+    setError,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(projectNameFormSchema),
+    defaultValues: { name: '' },
+  });
+
+  const errorMessage = errors.name?.message;
+  const hasError = errorMessage !== undefined;
+
   const handleCreateSuccess = (project: Project) => {
-    setName('');
+    reset();
     notify.success(`${project.name} 프로젝트를 추가했습니다.`);
   };
 
@@ -39,63 +54,43 @@ export function CreateProjectForm() {
     // 같은 이름은 고쳐서 다시 시도할 일이라 토스트 대신 입력칸 아래에 오류를 보임
     const isNameTaken = error instanceof ApiError && error.code === 'PROJECT_NAME_TAKEN';
     if (isNameTaken) {
-      setErrorMessage(NAME_TAKEN_MESSAGE);
+      setError('name', { message: NAME_TAKEN_MESSAGE });
       return;
     }
 
     notify.error('프로젝트를 추가하지 못했습니다. 다시 시도해 주세요.');
   };
 
-  const handleSubmit = () => {
-    // 추가하는 중에는 같은 이름이 두 번 추가되지 않게 막음
+  const handleValidSubmit = ({ name }: ProjectNameFormValues) => {
     if (isCreateProjectPending) return;
-
-    // 이름이 비어 있으면 요청하지 않고 입력칸 아래에 오류를 보임
-    const validation = validateProjectName(name);
-    if (!validation.isValid) {
-      setErrorMessage(validation.message);
-      return;
-    }
-
-    // 앞뒤 공백을 지운 이름으로 추가를 요청함
-    createProject(
-      { name: validation.name },
-      { onSuccess: handleCreateSuccess, onError: handleCreateError },
-    );
-  };
-
-  const handleNameChange = (event: ChangeEvent<HTMLInputElement>) => {
-    setName(event.target.value);
-    setErrorMessage(null);
-  };
-
-  const handleNameKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (isSubmitKey(event)) handleSubmit();
+    createProject({ name }, { onSuccess: handleCreateSuccess, onError: handleCreateError });
   };
 
   return (
-    <div className="flex items-start gap-2 px-5 py-3.5">
+    <form
+      noValidate
+      className="flex items-start gap-2 px-5 py-3.5"
+      onSubmit={handleSubmit(handleValidSubmit)}
+    >
       <Field className="flex-1">
         <Input
           aria-label="프로젝트 이름"
           placeholder="프로젝트 이름"
           maxLength={projectNameSchema.maxLength ?? undefined}
-          value={name}
           readOnly={isCreateProjectPending}
           aria-invalid={hasError}
           aria-describedby={hasError ? errorId : undefined}
-          onChange={handleNameChange}
-          onKeyDown={handleNameKeyDown}
+          {...register('name')}
         />
         <FieldError id={errorId}>{errorMessage}</FieldError>
       </Field>
       <Button
+        type="submit"
         variant="primary"
         disabled={isCreateProjectPending}
-        onClick={handleSubmit}
       >
         추가
       </Button>
-    </div>
+    </form>
   );
 }

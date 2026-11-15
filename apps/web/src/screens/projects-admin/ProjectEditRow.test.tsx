@@ -154,7 +154,7 @@ describe('프로젝트 이름 고치는 행', () => {
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
   });
 
-  test('고친 뒤에 지난 오류가 남지 않게 하기 위해 글자를 고치면 오류를 지운다', async () => {
+  test('고친 뒤에 지난 오류가 남지 않게 하기 위해 고친 이름이 규칙에 맞으면 오류를 지운다', async () => {
     // Given: 같은 이름 오류가 보임
     const user = userEvent.setup();
     respondToRename('nameTaken');

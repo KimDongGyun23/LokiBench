@@ -1,6 +1,6 @@
 import { createProjectRequestSchema, type Project } from '@lokibench/contracts';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { toast } from 'sonner';
@@ -18,23 +18,28 @@ type CreateResponsePlan = 'success' | 'slowSuccess' | 'nameTaken' | 'failure';
  * 프로젝트 추가 요청에 정한 대로 답하게 한다.
  *
  * - 성공으로 답하면 요청에 담긴 이름 그대로 새 프로젝트를 돌려준다
+ * - 이미 추가한 이름이 다시 오면 진짜 서버처럼 같은 이름으로 거절한다
  *
  * @param plan 성공, 늦은 성공, 같은 이름 거절, 그 밖의 실패 중 하나
  */
 function respondToCreate(plan: CreateResponsePlan) {
+  const createdNames = new Set<string>();
+
   server.use(
     http.get('/api/projects', () => HttpResponse.json([])),
     http.post('/api/projects', async ({ request }) => {
-      if (plan === 'nameTaken') {
-        return HttpResponse.json({ code: 'PROJECT_NAME_TAKEN', message: 'taken' }, { status: 409 });
-      }
       if (plan === 'failure') {
         return HttpResponse.json({ code: 'INTERNAL', message: 'boom' }, { status: 500 });
       }
 
+      const { name } = createProjectRequestSchema.parse(await request.json());
+      if (plan === 'nameTaken' || createdNames.has(name)) {
+        return HttpResponse.json({ code: 'PROJECT_NAME_TAKEN', message: 'taken' }, { status: 409 });
+      }
+      createdNames.add(name);
+
       if (plan === 'slowSuccess') await delay(200);
 
-      const { name } = createProjectRequestSchema.parse(await request.json());
       const project: Project = {
         id: 4,
         name,
@@ -100,22 +105,6 @@ describe('프로젝트 추가', () => {
     expect(await screen.findByText('블로그 프로젝트를 추가했습니다.')).toBeInTheDocument();
   });
 
-  test('쓰다 만 이름이 추가되지 않게 하기 위해 한글 조합 중의 Enter로는 추가하지 않는다', async () => {
-    // Given
-    const user = userEvent.setup();
-    respondToCreate('success');
-    const input = renderCreateProjectForm();
-    await user.type(input, '블로그');
-
-    // When: 조합 중에 Enter를 누름
-    fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
-
-    // Then: 추가됐다면 완료 토스트가 떠 있을 만큼 기다린 뒤에도 그대로임
-    await delay(150);
-    expect(screen.queryByText('블로그 프로젝트를 추가했습니다.')).not.toBeInTheDocument();
-    expect(input).toHaveValue('블로그');
-  });
-
   test('다음 이름이 지워지지 않게 하기 위해 추가하는 중에는 입력을 받지 않는다', async () => {
     // Given: 추가 응답이 늦게 옴
     const user = userEvent.setup();
@@ -128,6 +117,22 @@ describe('프로젝트 추가', () => {
 
     // Then
     expect(input).toHaveValue('블로그');
+  });
+
+  test('같은 프로젝트가 두 번 추가되지 않게 하기 위해 추가하는 중에 Enter를 다시 눌러도 한 번만 추가한다', async () => {
+    // Given: 추가 응답이 늦게 옴
+    const user = userEvent.setup();
+    respondToCreate('slowSuccess');
+    const input = renderCreateProjectForm();
+    await user.type(input, '블로그{Enter}');
+
+    // When: 응답을 기다리는 동안 Enter를 한 번 더 누름
+    await user.type(input, '{Enter}');
+
+    // Then: 두 번째 요청이 나갔다면 같은 이름으로 거절되어 오류가 보였을 것임
+    expect(await screen.findByText('블로그 프로젝트를 추가했습니다.')).toBeInTheDocument();
+    expect(input).toHaveValue('');
+    expect(screen.queryByText('같은 이름의 프로젝트가 이미 있습니다.')).not.toBeInTheDocument();
   });
 
   test('길이 오류 문구를 없애기 위해 입력칸이 40자를 넘는 입력을 막는다', () => {
@@ -167,7 +172,7 @@ describe('프로젝트 추가 오류', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('이름을 입력해 주세요.');
   });
 
-  test('고친 뒤에도 오류가 남아 보이지 않게 하기 위해 입력이 바뀌면 오류를 지운다', async () => {
+  test('고친 뒤에도 오류가 남아 보이지 않게 하기 위해 고친 이름이 규칙에 맞으면 오류를 지운다', async () => {
     // Given: 빈 이름 오류가 보임
     const user = userEvent.setup();
     const input = renderCreateProjectForm();

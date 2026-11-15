@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { type ChangeEvent, type KeyboardEvent, useId, useState } from 'react';
 
 import { Button } from '@/components/Button';
+import { Field, FieldError } from '@/components/Field';
 import { Input } from '@/components/Input';
 import { projectMutations } from '@/domains/projects/mutation-options';
 import { ApiError } from '@/lib/api-client';
@@ -74,7 +75,7 @@ export function CreateProjectForm() {
 
   return (
     <div className="flex items-start gap-2 px-5 py-3.5">
-      <div className="flex min-w-0 flex-1 flex-col">
+      <Field className="flex-1">
         <Input
           aria-label="프로젝트 이름"
           placeholder="프로젝트 이름"
@@ -86,16 +87,8 @@ export function CreateProjectForm() {
           onChange={handleNameChange}
           onKeyDown={handleNameKeyDown}
         />
-        {hasError && (
-          <p
-            id={errorId}
-            role="alert"
-            className="text-coral mt-1.25 text-[11.5px]"
-          >
-            {errorMessage}
-          </p>
-        )}
-      </div>
+        <FieldError id={errorId}>{errorMessage}</FieldError>
+      </Field>
       <Button
         variant="primary"
         disabled={isCreateProjectPending}

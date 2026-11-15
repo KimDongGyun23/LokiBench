@@ -1,10 +1,11 @@
 import { replace, type RouteObject } from 'react-router';
 
-import { EmptyState } from '@/components/EmptyState';
+import { PageNotice } from '@/components/PageNotice';
 import { TopBar } from '@/components/TopBar';
 import { ErrorPage } from '@/screens/error/ErrorPage';
 import { NotFoundPage } from '@/screens/not-found/NotFoundPage';
 import { ProjectPage } from '@/screens/project/ProjectPage';
+import { ProjectsAdminPage } from '@/screens/projects-admin/ProjectsAdminPage';
 
 import { AppLayout } from './AppLayout';
 
@@ -22,7 +23,6 @@ const PLACEHOLDER_PAGES: PlaceholderPageEntry[] = [
   { path: 'week', title: '주간', featureNumber: 8 },
   { path: 'milestones', title: '마일스톤 관리', featureNumber: 3 },
   { path: 'archive', title: '아카이브', featureNumber: 10 },
-  { path: 'projects-admin', title: '프로젝트 관리', featureNumber: 1 },
 ];
 
 /**
@@ -37,7 +37,7 @@ function toPlaceholderRoute({ path, title, featureNumber }: PlaceholderPageEntry
     element: (
       <>
         <TopBar title={title} />
-        <EmptyState
+        <PageNotice
           title="준비 중인 화면"
           description={`${featureNumber}번 기능에서 구현됩니다.`}
         />
@@ -62,6 +62,7 @@ export const routes: RouteObject[] = [
         children: [
           { index: true, loader: () => replace('/dashboard') },
           { path: 'projects/:projectId', element: <ProjectPage /> },
+          { path: 'projects-admin', element: <ProjectsAdminPage /> },
           ...PLACEHOLDER_PAGES.map(toPlaceholderRoute),
           { path: '*', element: <NotFoundPage /> },
         ],

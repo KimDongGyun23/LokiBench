@@ -5,7 +5,7 @@ import type { ComponentProps } from 'react';
 import { cn } from '@/lib/cn';
 
 const buttonVariants = cva(
-  'focus-visible:border-sky focus-visible:ring-ring inline-flex shrink-0 items-center justify-center gap-1.5 border whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-3 disabled:pointer-events-none disabled:opacity-50',
+  'focus-visible:border-sky focus-visible:ring-ring inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 border whitespace-nowrap transition-colors outline-none select-none focus-visible:ring-3 disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
@@ -31,9 +31,6 @@ interface ButtonProps extends ComponentProps<'button'>, VariantProps<typeof butt
 /**
  * 앱 전체에서 쓰는 공용 버튼을 그린다.
  *
- * - 주요(primary)는 밝은 면에 어두운 굵은 글자, 보조(secondary)는 투명한 면에 테두리를 쓴다
- * - 크기는 sm(28px, 글자 12px), md(32px, 글자 13px) 두 가지이고 기본은 보조, md다
- * - 키보드로 포커스하면 하늘색 테두리와 링이 생기고, disabled면 흐려지고 누를 수 없다
  * - type을 주지 않으면 button이라 폼 안에서 눌러도 제출되지 않는다
  * - asChild면 button 대신 링크 같은 자식 요소에 같은 모양을 입히고 type은 붙이지 않는다
  * - 링크는 disabled를 지원하지 않아서 asChild로 링크를 쓰면 disabled가 적용되지 않는다

@@ -56,6 +56,8 @@ export default defineConfig(
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
       '@typescript-eslint/restrict-template-expressions': ['error', { allowNumber: true }],
+      // 반환값 없는 호출을 화살표 함수 한 줄로 쓰는 것은 허용함
+      '@typescript-eslint/no-confusing-void-expression': ['error', { ignoreArrowShorthand: true }],
       // code-convention: 컴포넌트에 FC 타입을 쓰지 않음
       'no-restricted-imports': [
         'error',

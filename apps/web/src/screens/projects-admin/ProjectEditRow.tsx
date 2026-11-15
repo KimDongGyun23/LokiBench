@@ -72,7 +72,6 @@ export function ProjectEditRow({ project, color, onColorChange, onEditEnd }: Pro
   };
 
   const handleValidSubmit = ({ name }: ProjectNameFormValues) => {
-    if (isRenamePending) return;
     if (name === project.name) {
       onEditEnd();
       return;

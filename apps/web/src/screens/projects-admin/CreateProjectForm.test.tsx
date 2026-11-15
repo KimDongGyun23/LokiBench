@@ -12,14 +12,14 @@ import { server } from '@/test/server';
 import { CreateProjectForm } from './CreateProjectForm';
 
 // 추가 요청에 서버가 어떻게 답할지
-type CreateResponsePlan = 'success' | 'nameTaken' | 'failure';
+type CreateResponsePlan = 'success' | 'slowSuccess' | 'nameTaken' | 'failure';
 
 /**
  * 프로젝트 추가 요청에 정한 대로 답하게 한다.
  *
  * - 성공으로 답하면 요청에 담긴 이름 그대로 새 프로젝트를 돌려준다
  *
- * @param plan 성공, 같은 이름 거절, 그 밖의 실패 중 하나
+ * @param plan 성공, 늦은 성공, 같은 이름 거절, 그 밖의 실패 중 하나
  */
 function respondToCreate(plan: CreateResponsePlan) {
   server.use(
@@ -31,6 +31,8 @@ function respondToCreate(plan: CreateResponsePlan) {
       if (plan === 'failure') {
         return HttpResponse.json({ code: 'INTERNAL', message: 'boom' }, { status: 500 });
       }
+
+      if (plan === 'slowSuccess') await delay(200);
 
       const { name } = createProjectRequestSchema.parse(await request.json());
       const project: Project = {
@@ -111,6 +113,20 @@ describe('프로젝트 추가', () => {
     // Then: 추가됐다면 완료 토스트가 떠 있을 만큼 기다린 뒤에도 그대로임
     await delay(150);
     expect(screen.queryByText('블로그 프로젝트를 추가했습니다.')).not.toBeInTheDocument();
+    expect(input).toHaveValue('블로그');
+  });
+
+  test('다음 이름이 지워지지 않게 하기 위해 추가하는 중에는 입력을 받지 않는다', async () => {
+    // Given: 추가 응답이 늦게 옴
+    const user = userEvent.setup();
+    respondToCreate('slowSuccess');
+    const input = renderCreateProjectForm();
+    await user.type(input, '블로그{Enter}');
+
+    // When: 응답을 기다리는 동안 이어서 입력함
+    await user.type(input, '독서');
+
+    // Then
     expect(input).toHaveValue('블로그');
   });
 

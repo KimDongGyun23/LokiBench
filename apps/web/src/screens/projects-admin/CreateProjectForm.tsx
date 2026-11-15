@@ -16,6 +16,7 @@ import { isSubmitKey, NAME_TAKEN_MESSAGE, validateProjectName } from './project-
  * - 이름이 비어 있거나 같은 이름이 이미 있으면 토스트 대신 입력칸 아래에 오류를 보인다
  * - 실패했을 때는 고쳐서 다시 시도할 수 있게 입력한 글자를 남긴다
  * - 추가하는 중에는 같은 이름이 두 번 추가되지 않게 다시 제출하지 못한다
+ * - 추가하는 중에는 성공 뒤 입력칸을 비울 때 다음 이름이 지워지지 않게 입력도 받지 않는다
  */
 export function CreateProjectForm() {
   const [name, setName] = useState('');
@@ -79,6 +80,7 @@ export function CreateProjectForm() {
           placeholder="프로젝트 이름"
           maxLength={projectNameSchema.maxLength ?? undefined}
           value={name}
+          readOnly={isCreateProjectPending}
           aria-invalid={hasError}
           aria-describedby={hasError ? errorId : undefined}
           onChange={handleNameChange}

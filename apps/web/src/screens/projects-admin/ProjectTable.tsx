@@ -2,6 +2,7 @@ import type { Project } from '@lokibench/contracts';
 
 import { Skeleton, SkeletonBar } from '@/components/Skeleton';
 
+import { CreateProjectForm } from './CreateProjectForm';
 import { ProjectRow } from './ProjectRow';
 
 /**
@@ -24,7 +25,7 @@ interface ProjectTableProps {
 }
 
 /**
- * 프로젝트를 한 줄씩 보여 주는 표를 그린다.
+ * 프로젝트를 한 줄씩 보여 주는 표와 그 아래의 추가 줄을 그린다.
  *
  * - 프로젝트가 없으면 어디서 추가하는지 안내하는 줄을 대신 보인다
  *
@@ -72,6 +73,7 @@ export function ProjectTable({ projects }: ProjectTableProps) {
           )}
         </tbody>
       </table>
+      <CreateProjectForm />
     </div>
   );
 }

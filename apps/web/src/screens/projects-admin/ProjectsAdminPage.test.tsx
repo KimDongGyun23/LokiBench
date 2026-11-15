@@ -68,3 +68,39 @@ describe('프로젝트 관리 다시 받기 실패', () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe('프로젝트 관리 추가', () => {
+  test('추가한 것을 바로 쓸 수 있도록 새 프로젝트가 표와 사이드바의 맨 끝에 나타난다', async () => {
+    // Given: 서버가 추가한 프로젝트를 목록 끝에 붙임
+    const user = userEvent.setup();
+    const moving: Project = {
+      id: 4,
+      name: '이사 준비',
+      color: 'sky',
+      createdAt: '2026-10-04T00:00:00.000Z',
+      archivedAt: null,
+    };
+    let serverProjects = PROJECTS;
+    server.use(
+      http.get('/api/projects', () => HttpResponse.json(serverProjects)),
+      http.post('/api/projects', () => {
+        serverProjects = [...serverProjects, moving];
+        return HttpResponse.json(moving, { status: 201 });
+      }),
+    );
+    renderApp({ route: '/projects-admin' });
+    const table = await screen.findByRole('table', { name: '프로젝트' });
+
+    // When
+    await user.type(screen.getByRole('textbox', { name: '프로젝트 이름' }), '이사 준비{Enter}');
+
+    // Then
+    expect(await within(table).findByRole('row', { name: /이사 준비/ })).toBeInTheDocument();
+    const rows = within(table).getAllByRole('row');
+    expect(rows.at(-1)).toHaveTextContent('이사 준비');
+    const links = within(screen.getByRole('navigation', { name: '주 메뉴' })).getAllByRole('link', {
+      name: /독서 기록|가계부|블로그|이사 준비/,
+    });
+    expect(links.at(-1)).toHaveTextContent('이사 준비');
+  });
+});

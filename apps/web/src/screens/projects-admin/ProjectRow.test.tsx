@@ -1,8 +1,9 @@
 import { type Project, updateProjectRequestSchema } from '@lokibench/contracts';
 import { QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { Toaster } from '@/components/Toaster';
@@ -67,11 +68,39 @@ function respondToColorChange({ delayMs, isFailure }: ColorResponsePlan) {
   );
 }
 
+// 이름 변경 요청에 서버가 어떻게 답할지
+type RenameResponsePlan = 'success' | 'failure';
+
 /**
- * 받은 프로젝트 목록을 행으로 그린다.
+ * 가계부의 이름 변경 요청에 정한 대로 답하게 한다.
+ *
+ * - 성공으로 답하면 서버가 들고 있는 이름도 바꾼다
+ *
+ * @param plan 성공 또는 실패
+ */
+function respondToRename(plan: RenameResponsePlan) {
+  server.use(
+    http.patch('/api/projects/2', async ({ request }) => {
+      const { name } = updateProjectRequestSchema.parse(await request.json());
+      if (plan === 'failure' || name === undefined) {
+        return HttpResponse.json({ code: 'INTERNAL', message: 'boom' }, { status: 500 });
+      }
+
+      serverProjects = serverProjects.map((project) =>
+        project.id === BUDGET.id ? { ...project, name } : project,
+      );
+
+      return HttpResponse.json({ ...BUDGET, name });
+    }),
+  );
+}
+
+/**
+ * 받은 프로젝트 목록을 행으로 그리고, 어느 행을 고치는 중인지 기억한다.
  */
 function ProjectRows() {
   const { data: projects } = useQuery(projectQueries.list());
+  const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
 
   return (
     <table>
@@ -80,6 +109,10 @@ function ProjectRows() {
           <ProjectRow
             key={project.id}
             project={project}
+            isEditing={editingProjectId === project.id}
+            canEdit={editingProjectId === null}
+            onEditStart={() => setEditingProjectId(project.id)}
+            onEditEnd={() => setEditingProjectId(null)}
           />
         ))}
       </tbody>
@@ -98,6 +131,18 @@ async function renderProjectRow() {
     </QueryClientProvider>,
   );
   await screen.findByText('가계부');
+}
+
+/**
+ * 가계부 행을 그린 뒤 수정을 눌러 이름 입력칸을 연다.
+ *
+ * @returns 이름 입력칸
+ */
+async function renderEditingProjectRow() {
+  await renderProjectRow();
+  await userEvent.click(screen.getByRole('button', { name: '가계부 이름 수정' }));
+
+  return screen.getByRole('textbox', { name: '가계부의 새 이름' });
 }
 
 describe('프로젝트 행', () => {
@@ -150,7 +195,143 @@ describe('프로젝트 행', () => {
     expect(screen.getByRole('button', { name: 'rose', pressed: true })).toBeInTheDocument();
 
     // Then
-    expect(await screen.findByText('색을 바꾸지 못했습니다.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('색을 변경하지 못했습니다. 다시 시도해 주세요.'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'teal', pressed: true })).toBeInTheDocument();
+  });
+});
+
+describe('프로젝트 이름 변경', () => {
+  test('이름을 그 자리에서 고칠 수 있도록 수정을 누르면 이름이 입력칸으로, 버튼이 저장과 취소로 바뀐다', async () => {
+    // Given, When
+    const input = await renderEditingProjectRow();
+
+    // Then
+    expect(input).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '저장' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '취소' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '가계부 이름 수정' })).not.toBeInTheDocument();
+  });
+
+  test('바뀐 이름을 바로 확인할 수 있도록 저장에 성공하면 토스트 없이 입력칸을 닫고 새 이름을 보인다', async () => {
+    // Given
+    const user = userEvent.setup();
+    respondToRename('success');
+    const input = await renderEditingProjectRow();
+
+    // When: 앞뒤에 공백을 붙여 입력하고 저장을 누름
+    await user.clear(input);
+    await user.type(input, '  생활비  ');
+    await user.click(screen.getByRole('button', { name: '저장' }));
+
+    // Then: 공백을 지운 이름으로 바뀜
+    expect(await screen.findByRole('button', { name: '생활비 이름 수정' })).toBeInTheDocument();
+    expect(screen.getByText('생활비')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: '가계부의 새 이름' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+  });
+
+  test('마우스 없이 저장할 수 있도록 입력칸에서 Enter를 누르면 저장한다', async () => {
+    // Given
+    const user = userEvent.setup();
+    respondToRename('success');
+    const input = await renderEditingProjectRow();
+
+    // When
+    await user.clear(input);
+    await user.type(input, '생활비{Enter}');
+
+    // Then
+    expect(await screen.findByRole('button', { name: '생활비 이름 수정' })).toBeInTheDocument();
+  });
+
+  test('필요 없는 요청을 보내지 않기 위해 이름이 그대로면 저장을 눌러도 요청 없이 입력칸을 닫는다', async () => {
+    // Given: 요청이 나가면 실패해서 오류 토스트가 뜸
+    const user = userEvent.setup();
+    respondToRename('failure');
+    const input = await renderEditingProjectRow();
+
+    // When: 뒤에 공백만 덧붙이고 저장함
+    await user.type(input, ' {Enter}');
+
+    // Then
+    expect(screen.queryByRole('textbox', { name: '가계부의 새 이름' })).not.toBeInTheDocument();
+    await delay(100);
+    expect(
+      screen.queryByText('이름을 변경하지 못했습니다. 다시 시도해 주세요.'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('가계부')).toBeInTheDocument();
+  });
+
+  test('고치던 것을 버릴 수 있도록 취소를 누르면 입력한 글자를 버리고 원래 이름을 보인다', async () => {
+    // Given
+    const user = userEvent.setup();
+    const input = await renderEditingProjectRow();
+    await user.clear(input);
+    await user.type(input, '생활비');
+
+    // When
+    await user.click(screen.getByRole('button', { name: '취소' }));
+
+    // Then: 다시 열어도 원래 이름으로 채워짐
+    expect(screen.getByText('가계부')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '가계부 이름 수정' }));
+    expect(screen.getByRole('textbox', { name: '가계부의 새 이름' })).toHaveValue('가계부');
+  });
+
+  test('마우스 없이 취소할 수 있도록 입력칸에서 ESC를 누르면 취소한다', async () => {
+    // Given
+    const user = userEvent.setup();
+    const input = await renderEditingProjectRow();
+    await user.clear(input);
+
+    // When
+    await user.type(input, '생활비{Escape}');
+
+    // Then
+    expect(screen.queryByRole('textbox', { name: '가계부의 새 이름' })).not.toBeInTheDocument();
+    expect(screen.getByText('가계부')).toBeInTheDocument();
+  });
+
+  test('취소했는데 이름이 바뀌는 일이 없게 하기 위해 저장하는 중에는 ESC를 눌러도 닫지 않는다', async () => {
+    // Given: 저장 응답이 늦게 옴
+    const user = userEvent.setup();
+    server.use(
+      http.patch('/api/projects/2', async () => {
+        await delay(200);
+
+        return HttpResponse.json({ ...BUDGET, name: '생활비' });
+      }),
+    );
+    const input = await renderEditingProjectRow();
+    await user.clear(input);
+    await user.type(input, '생활비{Enter}');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '저장' })).toBeDisabled();
+    });
+
+    // When
+    await user.type(input, '{Escape}');
+
+    // Then
+    expect(input).toBeInTheDocument();
+  });
+
+  test('다시 열었을 때 지난 오류가 보이지 않게 하기 위해 취소하면 오류도 함께 버린다', async () => {
+    // Given: 이름을 비우고 저장해서 오류가 보임
+    const user = userEvent.setup();
+    const input = await renderEditingProjectRow();
+    await user.clear(input);
+    await user.type(input, '{Enter}');
+    await screen.findByRole('alert');
+
+    // When: 취소한 뒤 다시 엶
+    await user.click(screen.getByRole('button', { name: '취소' }));
+    await user.click(screen.getByRole('button', { name: '가계부 이름 수정' }));
+
+    // Then
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: '가계부의 새 이름' })).toBeValid();
   });
 });

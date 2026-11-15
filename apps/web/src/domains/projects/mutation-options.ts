@@ -16,6 +16,26 @@ interface ChangeProjectColorVariables {
   color: ProjectColor;
 }
 
+// 이름 변경에 넘길 값
+interface RenameProjectVariables {
+  projectId: number;
+  name: string;
+}
+
+/**
+ * 프로젝트 하나의 일부 값을 바꿔 달라고 서버에 요청한다.
+ *
+ * @param projectId 바꿀 프로젝트 id
+ * @param request 바꿀 값
+ * @returns 바뀐 뒤의 프로젝트
+ */
+function updateProject(projectId: number, request: UpdateProjectRequest) {
+  return apiRequest(`/projects/${projectId}`, projectSchema, {
+    method: 'PATCH',
+    body: JSON.stringify(request),
+  });
+}
+
 /**
  * 프로젝트 변경 설정 모음
  *
@@ -47,13 +67,21 @@ export const projectMutations = {
    */
   changeColor: () =>
     mutationOptions({
-      mutationFn: ({ projectId, color }: ChangeProjectColorVariables) => {
-        const request: UpdateProjectRequest = { color };
-        return apiRequest(`/projects/${projectId}`, projectSchema, {
-          method: 'PATCH',
-          body: JSON.stringify(request),
-        });
-      },
+      mutationFn: ({ projectId, color }: ChangeProjectColorVariables) =>
+        updateProject(projectId, { color }),
+      onSuccess: (_project, _variables, _onMutateResult, { client }) =>
+        client.invalidateQueries({ queryKey: projectQueries.all() }),
+    }),
+
+  /**
+   * 프로젝트 이름을 바꾼다.
+   *
+   * @returns 프로젝트 이름 변경 설정
+   */
+  rename: () =>
+    mutationOptions({
+      mutationFn: ({ projectId, name }: RenameProjectVariables) =>
+        updateProject(projectId, { name }),
       onSuccess: (_project, _variables, _onMutateResult, { client }) =>
         client.invalidateQueries({ queryKey: projectQueries.all() }),
     }),

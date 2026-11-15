@@ -104,3 +104,35 @@ describe('프로젝트 관리 추가', () => {
     expect(links.at(-1)).toHaveTextContent('이사 준비');
   });
 });
+
+describe('프로젝트 관리 이름 변경', () => {
+  test('바뀐 이름을 어디서나 바로 볼 수 있도록 이름을 바꾸면 표와 사이드바에 함께 반영된다', async () => {
+    // Given: 서버가 가계부의 이름을 바꿔 저장함
+    const user = userEvent.setup();
+    let serverProjects = PROJECTS;
+    server.use(
+      http.get('/api/projects', () => HttpResponse.json(serverProjects)),
+      http.patch('/api/projects/2', () => {
+        serverProjects = serverProjects.map((project) =>
+          project.id === 2 ? { ...project, name: '생활비' } : project,
+        );
+
+        return HttpResponse.json({ ...PROJECTS[1], name: '생활비' });
+      }),
+    );
+    renderApp({ route: '/projects-admin' });
+    const table = await screen.findByRole('table', { name: '프로젝트' });
+
+    // When
+    await user.click(await within(table).findByRole('button', { name: '가계부 이름 수정' }));
+    const input = within(table).getByRole('textbox', { name: '가계부의 새 이름' });
+    await user.clear(input);
+    await user.type(input, '생활비{Enter}');
+
+    // Then
+    expect(await within(table).findByRole('row', { name: /생활비/ })).toBeInTheDocument();
+    const navigation = screen.getByRole('navigation', { name: '주 메뉴' });
+    expect(within(navigation).getByRole('link', { name: /생활비/ })).toBeInTheDocument();
+    expect(within(navigation).queryByRole('link', { name: /가계부/ })).not.toBeInTheDocument();
+  });
+});

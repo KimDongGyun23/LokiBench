@@ -103,7 +103,27 @@ function respondToColorChange(plans: Partial<Record<ProjectColor, ColorResponseP
 }
 
 /**
- * 목록 조회와 두 변경을 같은 조회 캐시 위에 올리고, 목록을 받을 때까지 기다린다.
+ * 가계부의 이름 변경 요청을 서버에 저장하고 성공으로 답하게 한다.
+ */
+function respondToRename() {
+  server.use(
+    http.patch('/api/projects/2', async ({ request }) => {
+      const { name } = updateProjectRequestSchema.parse(await request.json());
+      if (name === undefined) {
+        return HttpResponse.json({ code: 'VALIDATION', message: 'unexpected' }, { status: 400 });
+      }
+
+      serverProjects = serverProjects.map((project) =>
+        project.id === BUDGET.id ? { ...project, name } : project,
+      );
+
+      return HttpResponse.json({ ...BUDGET, name });
+    }),
+  );
+}
+
+/**
+ * 목록 조회와 세 변경을 같은 조회 캐시 위에 올리고, 목록을 받을 때까지 기다린다.
  */
 async function renderProjectHooks() {
   const queryClient = createQueryClient();
@@ -115,6 +135,7 @@ async function renderProjectHooks() {
       projects: useQuery(projectQueries.list()),
       createProject: useMutation(projectMutations.create()),
       changeColor: useMutation(projectMutations.changeColor()),
+      rename: useMutation(projectMutations.rename()),
     }),
     { wrapper },
   );
@@ -282,5 +303,46 @@ describe('프로젝트 색 변경', () => {
 
     // Then
     expect(result.current.projects.data).toEqual([READING, BUDGET]);
+  });
+});
+
+describe('프로젝트 이름 변경', () => {
+  test('바뀐 이름이 목록에 보이도록 이름 변경에 성공하면 목록을 다시 받는다', async () => {
+    // Given
+    respondToRename();
+    const result = await renderProjectHooks();
+
+    // When
+    await act(() => result.current.rename.mutateAsync({ projectId: 2, name: '생활비' }));
+
+    // Then
+    await waitFor(() => {
+      expect(result.current.projects.data).toEqual([READING, { ...BUDGET, name: '생활비' }]);
+    });
+  });
+
+  test('저장되지 않은 이름이 보이지 않게 하기 위해 이름 변경이 거절되면 목록을 그대로 둔다', async () => {
+    // Given
+    server.use(
+      http.patch('/api/projects/2', () =>
+        HttpResponse.json(
+          { code: 'PROJECT_NAME_TAKEN', message: 'name already taken' },
+          { status: 409 },
+        ),
+      ),
+    );
+    const result = await renderProjectHooks();
+
+    // When
+    const failure = await act(() =>
+      result.current.rename
+        .mutateAsync({ projectId: 2, name: '독서 기록' })
+        .catch((error: unknown) => error),
+    );
+
+    // Then
+    expect(failure).toMatchObject({ code: 'PROJECT_NAME_TAKEN' });
+    expect(result.current.projects.data).toEqual([READING, BUDGET]);
+    expect(listRequestCount).toBe(1);
   });
 });

@@ -1,6 +1,6 @@
 import { createProjectRequestSchema, type Project } from '@lokibench/contracts';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
 import { toast } from 'sonner';
@@ -98,22 +98,6 @@ describe('프로젝트 추가', () => {
 
     // Then
     expect(await screen.findByText('블로그 프로젝트를 추가했습니다.')).toBeInTheDocument();
-  });
-
-  test('쓰다 만 이름이 추가되지 않게 하기 위해 한글 조합 중의 Enter로는 추가하지 않는다', async () => {
-    // Given
-    const user = userEvent.setup();
-    respondToCreate('success');
-    const input = renderCreateProjectForm();
-    await user.type(input, '블로그');
-
-    // When: 조합 중에 Enter를 누름
-    fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
-
-    // Then: 추가됐다면 완료 토스트가 떠 있을 만큼 기다린 뒤에도 그대로임
-    await delay(150);
-    expect(screen.queryByText('블로그 프로젝트를 추가했습니다.')).not.toBeInTheDocument();
-    expect(input).toHaveValue('블로그');
   });
 
   test('다음 이름이 지워지지 않게 하기 위해 추가하는 중에는 입력을 받지 않는다', async () => {

@@ -43,7 +43,7 @@ export function CreateProjectForm() {
       return;
     }
 
-    notify.error('프로젝트를 추가하지 못했습니다.');
+    notify.error('프로젝트를 추가하지 못했습니다. 다시 시도해 주세요.');
   };
 
   const handleSubmit = () => {

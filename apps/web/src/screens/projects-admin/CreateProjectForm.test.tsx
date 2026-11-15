@@ -208,7 +208,9 @@ describe('프로젝트 추가 오류', () => {
     await user.type(input, '블로그{Enter}');
 
     // Then
-    expect(await screen.findByText('프로젝트를 추가하지 못했습니다.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('프로젝트를 추가하지 못했습니다. 다시 시도해 주세요.'),
+    ).toBeInTheDocument();
     expect(input).toHaveValue('블로그');
     expect(input).toBeValid();
   });

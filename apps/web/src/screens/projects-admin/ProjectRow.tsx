@@ -35,7 +35,7 @@ export function ProjectRow({ project }: ProjectRowProps) {
   const handleColorChange = (color: ProjectColor) => {
     changeColor(
       { projectId: project.id, color },
-      { onError: () => notify.error('색을 바꾸지 못했습니다.') },
+      { onError: () => notify.error('색을 변경하지 못했습니다. 다시 시도해 주세요.') },
     );
   };
 

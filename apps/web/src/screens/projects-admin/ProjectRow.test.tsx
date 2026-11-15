@@ -189,7 +189,9 @@ describe('프로젝트 행', () => {
     expect(screen.getByRole('button', { name: 'rose', pressed: true })).toBeInTheDocument();
 
     // Then
-    expect(await screen.findByText('색을 바꾸지 못했습니다.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('색을 변경하지 못했습니다. 다시 시도해 주세요.'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'teal', pressed: true })).toBeInTheDocument();
   });
 });

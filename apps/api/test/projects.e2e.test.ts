@@ -148,22 +148,6 @@ describe('프로젝트 목록', () => {
     const projects = projectSchema.array().parse(response.body);
     expect(projects.map((project) => project.name)).toEqual(['독서 기록', '가계부', '블로그']);
   });
-
-  test('아카이브된 프로젝트는 목록에서 뺀다', async () => {
-    // Given: 아카이브 기능이 아직 없어서 DB에 직접 넣음
-    await addProject('가계부');
-    await dataSource.query(
-      `INSERT INTO projects (name, color, created_at, archived_at)
-       VALUES ('이사 준비', 'sky', '2026-10-01T00:00:00.000Z', '2026-10-02T00:00:00.000Z')`,
-    );
-
-    // When
-    const response = await request(server).get('/api/projects');
-
-    // Then
-    const projects = projectSchema.array().parse(response.body);
-    expect(projects.map((project) => project.name)).toEqual(['가계부']);
-  });
 });
 
 describe('프로젝트 수정', () => {

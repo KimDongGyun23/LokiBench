@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, QueryFailedError, type Repository } from 'typeorm';
+import { QueryFailedError, type Repository } from 'typeorm';
 
 import { DomainError } from '../../common/domain-error';
 import { ProjectEntity } from './project.entity';
@@ -20,11 +20,8 @@ export class TypeOrmProjectRepository extends ProjectRepository {
     super();
   }
 
-  async findAll({ includeArchived }: { includeArchived: boolean }): Promise<Project[]> {
-    const entities = await this.repository.find({
-      where: includeArchived ? {} : { archivedAt: IsNull() },
-      order: { createdAt: 'ASC', id: 'ASC' },
-    });
+  async findAll(): Promise<Project[]> {
+    const entities = await this.repository.find({ order: { createdAt: 'ASC', id: 'ASC' } });
     return entities.map(toProjectModel);
   }
 

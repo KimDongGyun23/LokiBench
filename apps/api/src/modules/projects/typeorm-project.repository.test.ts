@@ -61,7 +61,7 @@ describe('도메인 모양', () => {
     );
 
     // When
-    const [project] = await repository.findAll({ includeArchived: true });
+    const [project] = await repository.findAll();
 
     // Then
     expect(project.createdAt).toEqual(new Date('2026-10-01T00:00:00.000Z'));
@@ -75,7 +75,7 @@ describe('도메인 모양', () => {
     );
 
     // When
-    const attempt = repository.findAll({ includeArchived: true });
+    const attempt = repository.findAll();
 
     // Then
     await expect(attempt).rejects.toThrow('projects.created_at 시각 형식이 잘못됨: id=7');

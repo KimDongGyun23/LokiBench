@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, CalendarDays, Flag, LayoutGrid, Settings2, Sun } from 'lucide-react';
+import { Columns3, Flag, Grid3x3, LayoutGrid, Settings2, Sun } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router';
 
@@ -133,12 +133,12 @@ export function Sidebar() {
       <SidebarLink
         to="/week"
         label="주간"
-        icon={<Calendar />}
+        icon={<Columns3 />}
       />
       <SidebarLink
         to="/month"
         label="월간"
-        icon={<CalendarDays />}
+        icon={<Grid3x3 />}
       />
 
       <p className="text-faint mt-7 px-2 pb-1.5 text-[11.5px] font-medium">Projects</p>

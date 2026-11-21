@@ -18,11 +18,10 @@ interface PlaceholderPageEntry {
 // 아직 만들지 않은 화면. 화면을 만드는 기능에서 여기서 빼고 경로 표에 한 줄을 더함
 const PLACEHOLDER_PAGES: PlaceholderPageEntry[] = [
   { path: 'dashboard', title: '대시보드', featureNumber: 9 },
-  { path: 'my', title: '내 작업', featureNumber: 7 },
   { path: 'today', title: '오늘', featureNumber: 8 },
   { path: 'week', title: '주간', featureNumber: 8 },
+  { path: 'month', title: '월간', featureNumber: 8 },
   { path: 'milestones', title: '마일스톤 관리', featureNumber: 3 },
-  { path: 'archive', title: '아카이브', featureNumber: 10 },
 ];
 
 /**

@@ -16,7 +16,6 @@ const BUDGET: Project = {
   name: '가계부',
   color: 'teal',
   createdAt: '2026-10-02T00:00:00.000Z',
-  archivedAt: null,
 };
 
 // sonner는 토스트 목록을 모듈 전역에 들고 있어서, 남은 토스트가 다음 테스트에 보이지 않게 지움

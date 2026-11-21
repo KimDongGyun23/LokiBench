@@ -18,7 +18,6 @@ const BUDGET: Project = {
   name: '가계부',
   color: 'teal',
   createdAt: '2026-10-02T00:00:00.000Z',
-  archivedAt: null,
 };
 
 // 서버가 들고 있는 프로젝트 목록

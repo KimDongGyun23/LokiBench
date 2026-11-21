@@ -43,7 +43,6 @@ describe('프로젝트 추가', () => {
     const project = projectSchema.parse(response.body);
     expect(project.name).toBe('독서 기록');
     expect(project.color).toBe('indigo');
-    expect(project.archivedAt).toBeNull();
   });
 
   test('같은 이름이 있으면 409를 주고 행을 늘리지 않는다', async () => {

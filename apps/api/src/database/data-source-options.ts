@@ -2,6 +2,7 @@ import type { DataSourceOptions } from 'typeorm';
 
 import { ProjectEntity } from '../modules/projects/project.entity';
 import { CreateProjects1792886400000 } from './migrations/1792886400000-create-projects';
+import { DropProjectsArchivedAt1795219200000 } from './migrations/1795219200000-drop-projects-archived-at';
 
 /**
  * sqlite 연결 설정을 만든다.
@@ -17,7 +18,7 @@ export function createDataSourceOptions(databasePath: string): DataSourceOptions
     type: 'better-sqlite3',
     database: databasePath,
     entities: [ProjectEntity],
-    migrations: [CreateProjects1792886400000],
+    migrations: [CreateProjects1792886400000, DropProjectsArchivedAt1795219200000],
     migrationsRun: true,
     synchronize: false,
   };

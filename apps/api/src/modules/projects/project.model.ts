@@ -9,7 +9,6 @@ export interface Project {
   name: string;
   color: ProjectColor;
   createdAt: Date;
-  archivedAt: Date | null;
 }
 
 // 저장소에 새 프로젝트를 만들 때 넘기는 값

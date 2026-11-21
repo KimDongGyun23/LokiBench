@@ -41,7 +41,6 @@ export class TypeOrmProjectRepository extends ProjectRepository {
       name: input.name,
       color: input.color,
       createdAt: new Date().toISOString(),
-      archivedAt: null,
     });
     await this.saveOrThrowNameTaken(entity);
     return toProjectModel(entity);
@@ -85,10 +84,6 @@ function toProjectModel(entity: ProjectEntity): Project {
     name: entity.name,
     color: entity.color,
     createdAt: parseStoredInstant(entity.createdAt, 'created_at', entity.id),
-    archivedAt:
-      entity.archivedAt === null
-        ? null
-        : parseStoredInstant(entity.archivedAt, 'archived_at', entity.id),
   };
 }
 

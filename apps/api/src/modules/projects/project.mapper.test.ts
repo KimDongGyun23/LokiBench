@@ -10,7 +10,6 @@ describe('프로젝트 응답 모양', () => {
       name: '독서 기록',
       color: 'indigo' as const,
       createdAt: new Date('2026-10-01T00:00:00.000Z'),
-      archivedAt: new Date('2026-10-02T00:00:00.000Z'),
     };
 
     // When

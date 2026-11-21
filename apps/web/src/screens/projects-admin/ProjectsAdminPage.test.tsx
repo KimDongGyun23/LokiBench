@@ -12,10 +12,9 @@ const PROJECTS: Project[] = [
     name: '독서 기록',
     color: 'indigo',
     createdAt: '2026-10-01T00:00:00.000Z',
-    archivedAt: null,
   },
-  { id: 2, name: '가계부', color: 'teal', createdAt: '2026-10-02T00:00:00.000Z', archivedAt: null },
-  { id: 3, name: '블로그', color: 'rose', createdAt: '2026-10-03T00:00:00.000Z', archivedAt: null },
+  { id: 2, name: '가계부', color: 'teal', createdAt: '2026-10-02T00:00:00.000Z' },
+  { id: 3, name: '블로그', color: 'rose', createdAt: '2026-10-03T00:00:00.000Z' },
 ];
 
 describe('프로젝트 관리 불러오기 실패', () => {
@@ -78,7 +77,6 @@ describe('프로젝트 관리 추가', () => {
       name: '이사 준비',
       color: 'sky',
       createdAt: '2026-10-04T00:00:00.000Z',
-      archivedAt: null,
     };
     let serverProjects = PROJECTS;
     server.use(

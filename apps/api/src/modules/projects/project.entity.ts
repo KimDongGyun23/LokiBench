@@ -21,7 +21,4 @@ export class ProjectEntity {
   // ISO 8601 UTC 문자열로 저장해 sqlite를 직접 열어도 읽히게 함
   @Column({ name: 'created_at', type: 'text' })
   createdAt!: string;
-
-  @Column({ name: 'archived_at', type: 'text', nullable: true })
-  archivedAt!: string | null;
 }

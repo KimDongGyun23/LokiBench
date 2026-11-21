@@ -15,12 +15,12 @@ export class ProjectsService {
   constructor(private readonly repository: ProjectRepository) {}
 
   /**
-   * 화면에 보일 프로젝트를 만든 순서대로 준다.
+   * 프로젝트를 만든 순서대로 준다.
    *
-   * @returns 아카이브되지 않은 프로젝트 목록
+   * @returns 프로젝트 전체 목록
    */
   list(): Promise<Project[]> {
-    return this.repository.findAll({ includeArchived: false });
+    return this.repository.findAll();
   }
 
   /**
@@ -36,7 +36,7 @@ export class ProjectsService {
       throw new DomainError('PROJECT_NAME_TAKEN');
     }
 
-    const projects = await this.repository.findAll({ includeArchived: true });
+    const projects = await this.repository.findAll();
     const color = pickProjectColor(projects);
     return this.repository.create({ ...command, color });
   }

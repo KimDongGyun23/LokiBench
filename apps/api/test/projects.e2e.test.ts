@@ -43,7 +43,6 @@ describe('프로젝트 추가', () => {
     const project = projectSchema.parse(response.body);
     expect(project.name).toBe('독서 기록');
     expect(project.color).toBe('indigo');
-    expect(project.archivedAt).toBeNull();
   });
 
   test('같은 이름이 있으면 409를 주고 행을 늘리지 않는다', async () => {
@@ -105,20 +104,6 @@ describe('프로젝트 추가', () => {
     expect(blog.color).toBe('teal');
   });
 
-  test('숨겨진 프로젝트 색은 화면에서 겹치지 않으므로 아카이브된 프로젝트의 색도 다시 준다', async () => {
-    // Given: 아카이브된 indigo 프로젝트만 있음
-    await dataSource.query(
-      `INSERT INTO projects (name, color, created_at, archived_at)
-       VALUES ('이사 준비', 'indigo', '2026-10-01T00:00:00.000Z', '2026-10-02T00:00:00.000Z')`,
-    );
-
-    // When
-    const project = await addProject('가계부');
-
-    // Then
-    expect(project.color).toBe('indigo');
-  });
-
   test('대소문자가 다르면 다른 이름으로 본다', async () => {
     // Given
     await addProject('Blog');
@@ -128,22 +113,6 @@ describe('프로젝트 추가', () => {
 
     // Then
     expect(response.status).toBe(201);
-  });
-
-  test('아카이브 해제 때 이름이 겹치지 않도록 아카이브된 프로젝트와 같은 이름도 409를 준다', async () => {
-    // Given: 아카이브 기능이 아직 없어서 DB에 직접 넣음
-    await dataSource.query(
-      `INSERT INTO projects (name, color, created_at, archived_at)
-       VALUES ('이사 준비', 'sky', '2026-10-01T00:00:00.000Z', '2026-10-02T00:00:00.000Z')`,
-    );
-
-    // When
-    const response = await request(server).post('/api/projects').send({ name: '이사 준비' });
-
-    // Then
-    expect(response.status).toBe(409);
-    expect(errorResponseSchema.parse(response.body).code).toBe('PROJECT_NAME_TAKEN');
-    expect(await countProjects()).toBe(1);
   });
 });
 
@@ -161,22 +130,6 @@ describe('프로젝트 목록', () => {
     expect(response.status).toBe(200);
     const projects = projectSchema.array().parse(response.body);
     expect(projects.map((project) => project.name)).toEqual(['독서 기록', '가계부', '블로그']);
-  });
-
-  test('아카이브된 프로젝트는 목록에서 뺀다', async () => {
-    // Given: 아카이브 기능이 아직 없어서 DB에 직접 넣음
-    await addProject('가계부');
-    await dataSource.query(
-      `INSERT INTO projects (name, color, created_at, archived_at)
-       VALUES ('이사 준비', 'sky', '2026-10-01T00:00:00.000Z', '2026-10-02T00:00:00.000Z')`,
-    );
-
-    // When
-    const response = await request(server).get('/api/projects');
-
-    // Then
-    const projects = projectSchema.array().parse(response.body);
-    expect(projects.map((project) => project.name)).toEqual(['가계부']);
   });
 });
 

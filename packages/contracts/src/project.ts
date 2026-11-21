@@ -12,7 +12,6 @@ export const projectSchema = z.object({
   name: z.string(),
   color: projectColorSchema,
   createdAt: z.iso.datetime(),
-  archivedAt: z.iso.datetime().nullable(),
 });
 export type Project = z.infer<typeof projectSchema>;
 

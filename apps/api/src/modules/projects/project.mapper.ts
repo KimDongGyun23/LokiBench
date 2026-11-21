@@ -19,6 +19,5 @@ export function toProjectResponse(project: Project): ProjectResponse {
     name: project.name,
     color: project.color,
     createdAt: project.createdAt.toISOString(),
-    archivedAt: project.archivedAt?.toISOString() ?? null,
   };
 }

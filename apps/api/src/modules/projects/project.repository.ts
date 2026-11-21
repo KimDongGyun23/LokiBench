@@ -9,7 +9,7 @@ import type { CreateProjectInput, Project, UpdateProjectInput } from './project.
  */
 export abstract class ProjectRepository {
   // 만든 순서(createdAt, 같으면 id 오름차순)로 줌
-  abstract findAll(options: { includeArchived: boolean }): Promise<Project[]>;
+  abstract findAll(): Promise<Project[]>;
 
   abstract findById(id: number): Promise<Project | null>;
 

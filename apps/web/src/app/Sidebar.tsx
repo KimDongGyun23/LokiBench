@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Archive, Calendar, CircleUserRound, Flag, LayoutGrid, Settings2, Sun } from 'lucide-react';
+import { Columns3, Flag, Grid3x3, LayoutGrid, Settings2, Sun } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router';
 
@@ -126,11 +126,6 @@ export function Sidebar() {
         icon={<LayoutGrid />}
       />
       <SidebarLink
-        to="/my"
-        label="내 작업"
-        icon={<CircleUserRound />}
-      />
-      <SidebarLink
         to="/today"
         label="오늘"
         icon={<Sun />}
@@ -138,7 +133,12 @@ export function Sidebar() {
       <SidebarLink
         to="/week"
         label="주간"
-        icon={<Calendar />}
+        icon={<Columns3 />}
+      />
+      <SidebarLink
+        to="/month"
+        label="월간"
+        icon={<Grid3x3 />}
       />
 
       <p className="text-faint mt-7 px-2 pb-1.5 text-[11.5px] font-medium">Projects</p>
@@ -149,11 +149,6 @@ export function Sidebar() {
           to="/milestones"
           label="마일스톤 관리"
           icon={<Flag />}
-        />
-        <SidebarLink
-          to="/archive"
-          label="아카이브"
-          icon={<Archive />}
         />
         <SidebarLink
           to="/projects-admin"

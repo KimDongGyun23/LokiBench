@@ -1,5 +1,8 @@
 import type { DataSourceOptions } from 'typeorm';
 
+import { ActivityEntity } from '../modules/issues/activity.entity';
+import { AppSettingsEntity } from '../modules/issues/app-settings.entity';
+import { IssueEntity } from '../modules/issues/issue.entity';
 import { ProjectEntity } from '../modules/projects/project.entity';
 import { CreateProjects1792886400000 } from './migrations/1792886400000-create-projects';
 import { DropProjectsArchivedAt1795219200000 } from './migrations/1795219200000-drop-projects-archived-at';
@@ -18,7 +21,7 @@ export function createDataSourceOptions(databasePath: string): DataSourceOptions
   return {
     type: 'better-sqlite3',
     database: databasePath,
-    entities: [ProjectEntity],
+    entities: [ProjectEntity, IssueEntity, ActivityEntity, AppSettingsEntity],
     migrations: [
       CreateProjects1792886400000,
       DropProjectsArchivedAt1795219200000,

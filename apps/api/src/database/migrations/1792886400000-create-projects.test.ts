@@ -3,8 +3,8 @@ import { DataSource } from 'typeorm';
 import { createDataSourceOptions } from '@/database/data-source-options';
 
 // 도메인의 팔레트에 새 색이 더해진 미래 상황을 흉내 냄
-vi.mock('@lokibench/domain', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@lokibench/domain')>();
+vi.mock('@lokibench/shared/values', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@lokibench/shared/values')>();
   return { ...original, PROJECT_COLORS: [...original.PROJECT_COLORS, 'lime'] };
 });
 

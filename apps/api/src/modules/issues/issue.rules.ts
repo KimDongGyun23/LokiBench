@@ -3,7 +3,7 @@ import {
   INITIAL_ISSUE_STATUS,
   type IssueStatus,
   REOPEN_ISSUE_STATUS,
-} from '@lokibench/domain';
+} from '@lokibench/shared/values';
 
 import { DomainError } from '@/errors/domain-error';
 

@@ -1,6 +1,6 @@
-import { ISSUE_STATUSES, ISSUE_TITLE_MAX_LENGTH } from '@lokibench/domain';
 import { z } from 'zod';
 
+import { ISSUE_STATUSES, ISSUE_TITLE_MAX_LENGTH } from '../values';
 import { dateOnlySchema } from './date';
 
 export const issueStatusSchema = z.enum(ISSUE_STATUSES);

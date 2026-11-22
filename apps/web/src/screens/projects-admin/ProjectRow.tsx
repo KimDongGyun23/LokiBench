@@ -1,4 +1,4 @@
-import type { Project } from '@lokibench/contracts';
+import type { Project } from '@lokibench/shared/contracts';
 import { useMutation } from '@tanstack/react-query';
 
 import type { ProjectColor } from '@/domains/projects/colors.constant';

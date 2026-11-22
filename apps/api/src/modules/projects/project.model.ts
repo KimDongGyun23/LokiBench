@@ -1,4 +1,4 @@
-import type { ProjectColor } from '@lokibench/domain';
+import type { ProjectColor } from '@lokibench/shared/values';
 
 // service와 repository가 다루는 프로젝트
 export interface Project {

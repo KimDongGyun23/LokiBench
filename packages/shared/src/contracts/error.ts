@@ -1,5 +1,6 @@
-import { DOMAIN_ERROR_CODES } from '@lokibench/domain';
 import { z } from 'zod';
+
+import { DOMAIN_ERROR_CODES } from '../values';
 
 // 같은 409, 400도 기능마다 뜻이 갈려서 web은 상태 코드가 아니라 이 코드로 화면 문구를 고름
 // 도메인 오류 코드에 요청 검증, 없는 경로, 서버 오류처럼 HTTP 사정의 코드를 더함

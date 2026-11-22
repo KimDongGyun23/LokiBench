@@ -1,4 +1,4 @@
-import { errorResponseSchema } from '@lokibench/contracts';
+import { errorResponseSchema } from '@lokibench/shared/contracts';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 

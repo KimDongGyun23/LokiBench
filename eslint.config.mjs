@@ -90,7 +90,7 @@ export default defineConfig(
         {
           paths: [
             {
-              name: '@lokibench/contracts',
+              name: '@lokibench/shared/contracts',
               message:
                 '도메인 타입은 같은 모듈의 *.model.ts에서 가져오고, 계약 변환은 컨트롤러와 *.mapper.ts에서 함',
             },

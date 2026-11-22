@@ -11,8 +11,7 @@
     "db:seed": "nest build && node dist/database/seed.js"
   },
   "dependencies": {
-    "@lokibench/contracts": "workspace:*",
-    "@lokibench/domain": "workspace:*",
+    "@lokibench/shared": "workspace:*",
     "@nestjs/common": "^11.2.8",
     "@nestjs/core": "^11.2.8",
     "@nestjs/platform-express": "^11.2.8",

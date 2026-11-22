@@ -1,4 +1,4 @@
-import type { Project as ProjectResponse } from '@lokibench/contracts';
+import type { Project as ProjectResponse } from '@lokibench/shared/contracts';
 
 import { parseStoredInstant } from '@/database/utils/parse-stored-instant';
 

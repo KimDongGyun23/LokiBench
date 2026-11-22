@@ -1,4 +1,4 @@
-import { ISSUE_STATUSES } from '@lokibench/domain';
+import { ISSUE_STATUSES } from '@lokibench/shared/values';
 import { DataSource } from 'typeorm';
 
 import { createDataSourceOptions } from '@/database/data-source-options';

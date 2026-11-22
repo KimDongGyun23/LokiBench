@@ -1,4 +1,4 @@
-import type { Project } from '@lokibench/contracts';
+import type { Project } from '@lokibench/shared/contracts';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';

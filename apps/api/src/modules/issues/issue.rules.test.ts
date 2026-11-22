@@ -1,4 +1,4 @@
-import type { IssueStatus, OpenIssueStatus } from '@lokibench/domain';
+import type { IssueStatus, OpenIssueStatus } from '@lokibench/shared/values';
 
 import type { ClosedIssue, IssueEvent, OpenIssue } from './issue.model';
 import { applyIssueUpdate, STATUS_UNDO_WINDOW_MS, undoIssueStatus } from './issue.rules';

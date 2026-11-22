@@ -2,7 +2,7 @@ import {
   createProjectRequestSchema,
   type Project as ProjectResponse,
   updateProjectRequestSchema,
-} from '@lokibench/contracts';
+} from '@lokibench/shared/contracts';
 import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
 import { createZodDto } from 'nestjs-zod';
 

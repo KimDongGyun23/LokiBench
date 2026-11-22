@@ -1,5 +1,6 @@
-import { PROJECT_COLORS, PROJECT_NAME_MAX_LENGTH } from '@lokibench/domain';
 import { z } from 'zod';
+
+import { PROJECT_COLORS, PROJECT_NAME_MAX_LENGTH } from '../values';
 
 export const projectColorSchema = z.enum(PROJECT_COLORS);
 

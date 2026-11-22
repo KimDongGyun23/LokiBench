@@ -1,4 +1,4 @@
-import { projectSchema } from '@lokibench/contracts';
+import { projectSchema } from '@lokibench/shared/contracts';
 
 import { toProjectModel, toProjectResponse } from './project.mapper';
 

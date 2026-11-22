@@ -2,7 +2,7 @@ import {
   type CreateProjectRequest,
   projectSchema,
   type UpdateProjectRequest,
-} from '@lokibench/contracts';
+} from '@lokibench/shared/contracts';
 import { mutationOptions } from '@tanstack/react-query';
 
 import { apiRequest } from '@/lib/api-client';

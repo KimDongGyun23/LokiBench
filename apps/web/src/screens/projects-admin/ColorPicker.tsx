@@ -1,4 +1,4 @@
-import { projectColorSchema } from '@lokibench/contracts';
+import { projectColorSchema } from '@lokibench/shared/contracts';
 
 import { PROJECT_COLOR_HEX, type ProjectColor } from '@/domains/projects/colors.constant';
 import { cn } from '@/lib/cn';

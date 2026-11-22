@@ -1,4 +1,4 @@
-import { type Project, updateProjectRequestSchema } from '@lokibench/contracts';
+import { type Project, updateProjectRequestSchema } from '@lokibench/shared/contracts';
 import { QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

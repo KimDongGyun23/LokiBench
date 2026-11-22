@@ -1,4 +1,4 @@
-import type { IssueStatus } from '@lokibench/domain';
+import type { IssueStatus } from '@lokibench/shared/values';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 /**

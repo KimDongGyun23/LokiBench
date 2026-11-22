@@ -1,5 +1,5 @@
-import type { ErrorCode } from '@lokibench/contracts';
-import type { IssueErrorCode, ProjectErrorCode } from '@lokibench/domain';
+import type { ErrorCode } from '@lokibench/shared/contracts';
+import type { IssueErrorCode, ProjectErrorCode } from '@lokibench/shared/values';
 import { HttpStatus } from '@nestjs/common';
 
 // 프로젝트 오류 코드별 상태 코드

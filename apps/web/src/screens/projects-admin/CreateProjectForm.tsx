@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { type Project, projectNameSchema } from '@lokibench/contracts';
+import { type Project, projectNameSchema } from '@lokibench/shared/contracts';
 import { useMutation } from '@tanstack/react-query';
 import { useId } from 'react';
 import { useForm } from 'react-hook-form';

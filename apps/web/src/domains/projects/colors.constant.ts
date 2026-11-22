@@ -1,4 +1,4 @@
-import type { Project } from '@lokibench/contracts';
+import type { Project } from '@lokibench/shared/contracts';
 
 // 프로젝트 색 이름 (indigo, sky, teal, violet, rose, orange)
 export type ProjectColor = Project['color'];

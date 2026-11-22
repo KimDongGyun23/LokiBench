@@ -7,7 +7,6 @@ import { TypeOrmProjectRepository } from './project.repository.typeorm';
 import { ProjectsController } from './projects.controller';
 import { ProjectsService } from './projects.service';
 
-// service는 추상 저장소에 기대고, 실제 구현은 여기서 TypeORM 구현체로 연결함
 @Module({
   imports: [TypeOrmModule.forFeature([ProjectEntity])],
   controllers: [ProjectsController],

@@ -9,6 +9,9 @@ export type ClosedIssueStatus = typeof CLOSED_ISSUE_STATUS;
 // 닫히지 않은 이슈가 가질 수 있는 상태
 export type OpenIssueStatus = Exclude<IssueStatus, ClosedIssueStatus>;
 
+// 닫힌 이슈를 다시 열 때 갈 수 있는 유일한 상태
+export const REOPEN_ISSUE_STATUS = 'TODO' satisfies OpenIssueStatus;
+
 // 이슈 규칙을 어겼을 때 알리는 오류 코드
 export const ISSUE_ERROR_CODES = [
   'ISSUE_NOT_FOUND',

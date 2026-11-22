@@ -1,7 +1,11 @@
-import type { IssueStatus, OpenIssueStatus } from '@lokibench/shared/values';
+import {
+  type IssueStatus,
+  type OpenIssueStatus,
+  STATUS_UNDO_WINDOW_MS,
+} from '@lokibench/shared/values';
 
 import type { ClosedIssue, IssueEvent, OpenIssue } from './issue.model';
-import { applyIssueUpdate, STATUS_UNDO_WINDOW_MS, undoIssueStatus } from './issue.rules';
+import { applyIssueUpdate, undoIssueStatus } from './issue.rules';
 
 const CREATED_AT = new Date('2026-11-20T09:00:00.000Z');
 const CLOSED_AT = new Date('2026-11-21T09:00:00.000Z');

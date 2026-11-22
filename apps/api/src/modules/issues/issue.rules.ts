@@ -3,14 +3,12 @@ import {
   INITIAL_ISSUE_STATUS,
   type IssueStatus,
   REOPEN_ISSUE_STATUS,
+  STATUS_UNDO_WINDOW_MS,
 } from '@lokibench/shared/values';
 
 import { DomainError } from '@/errors/domain-error';
 
 import type { Issue, IssueChanges, IssueEvent, NewStatusEvent } from './issue.model';
-
-// 상태를 바꾼 뒤 되돌릴 수 있는 시간
-export const STATUS_UNDO_WINDOW_MS = 5 * 60 * 1000;
 
 // 수정 요청을 이슈에 적용한 결과
 export type IssueUpdateResult =
@@ -52,9 +50,8 @@ export function applyIssueUpdate(
   // 지금과 같은 값만 왔으면 아무것도 저장하지 않음
   if (!isContentChanged && !isStatusChanged) return { kind: 'unchanged' };
 
-  const version = issue.version + 1;
-
   // 제목이나 마감만 바뀌면 이력을 남기지 않음
+  const version = issue.version + 1;
   if (!isStatusChanged) {
     return { kind: 'changed', issue: { ...issue, title, due, version }, event: null };
   }

@@ -251,6 +251,25 @@ describe('상태 되돌리기', () => {
     expect(atWindowEnd.issue.status).toBe('TODO');
   });
 
+  test('규칙을 마지막 상태 변경 하나로 두기 위해 되돌린 뒤 다시 되돌리면 그 앞 변경이 대상이 된다', () => {
+    // Given: 2분 전에 IN_PROGRESS로, 1분 전에 IN_REVIEW로 옮긴 이슈를 한 번 되돌림
+    const earlierAt = new Date(CHANGED_AT.getTime() - 60 * 1000);
+    const earlier = statusEvent(2, earlierAt, 'TODO', 'IN_PROGRESS');
+    const later = statusEvent(3, CHANGED_AT, 'IN_PROGRESS', 'IN_REVIEW');
+    const issue = { ...openIssue('IN_REVIEW'), statusChangedAt: CHANGED_AT };
+    const first = undoIssueStatus(issue, [later, earlier], NOW);
+
+    // When: 남은 이력으로 한 번 더 되돌림
+    const second = undoIssueStatus(first.issue, [earlier, createdEvent()], NOW);
+
+    // Then
+    expect(first.issue).toMatchObject({ status: 'IN_PROGRESS', statusChangedAt: earlierAt });
+    expect(second).toEqual({
+      issue: { ...openIssue('TODO'), statusChangedAt: CREATED_AT, version: 5 },
+      removedEventId: 2,
+    });
+  });
+
   test('오래된 변경을 뒤늦게 뒤집지 못하도록 5분을 1ms라도 넘기면 거부한다', () => {
     // Given: CHANGED_AT에 TODO에서 IN_PROGRESS로 옮긴 이슈
     const issue = { ...openIssue('IN_PROGRESS'), statusChangedAt: CHANGED_AT };

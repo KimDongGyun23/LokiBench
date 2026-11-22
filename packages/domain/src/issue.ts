@@ -9,6 +9,9 @@ export type ClosedIssueStatus = typeof CLOSED_ISSUE_STATUS;
 // 닫히지 않은 이슈가 가질 수 있는 상태
 export type OpenIssueStatus = Exclude<IssueStatus, ClosedIssueStatus>;
 
+// 새로 만든 이슈가 처음 갖는 상태
+export const INITIAL_ISSUE_STATUS = 'TODO' satisfies OpenIssueStatus;
+
 // 닫힌 이슈를 다시 열 때 갈 수 있는 유일한 상태
 export const REOPEN_ISSUE_STATUS = 'TODO' satisfies OpenIssueStatus;
 

@@ -163,6 +163,26 @@ describe('활동 기록 행의 제약', () => {
     await expect(insert).rejects.toThrow();
   });
 
+  test('만든 기록이 상태 변경으로 읽히지 않도록 만든 기록에 내용이 있으면 거부한다', async () => {
+    // When
+    const insert = dataSource.query(
+      `INSERT INTO activities (issue_id, at, kind, payload) VALUES (1, '${AT}', 'CREATED', '{"from":"TODO","to":"IN_PROGRESS"}')`,
+    );
+
+    // Then
+    await expect(insert).rejects.toThrow();
+  });
+
+  test('두 종류 밖의 기록은 거부한다', async () => {
+    // When
+    const insert = dataSource.query(
+      `INSERT INTO activities (issue_id, at, kind, payload) VALUES (1, '${AT}', 'COMMENT', NULL)`,
+    );
+
+    // Then
+    await expect(insert).rejects.toThrow();
+  });
+
   test('없는 이슈의 기록을 거부한다', async () => {
     // When
     const insert = dataSource.query(

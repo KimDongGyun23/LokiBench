@@ -1,3 +1,4 @@
+import { ISSUE_STATUSES } from '@lokibench/domain';
 import { DataSource } from 'typeorm';
 
 import { createDataSourceOptions } from '../data-source-options';
@@ -72,13 +73,21 @@ describe('이슈 테이블 만들기', () => {
 });
 
 describe('이슈 행의 제약', () => {
-  test('규칙에 맞는 이슈는 넣을 수 있다', async () => {
+  test('도메인이 아는 상태를 저장하지 못하는 일이 없도록 모든 상태의 이슈를 넣을 수 있다', async () => {
     // When
-    await dataSource.query(insertIssueSql());
+    for (const [index, status] of ISSUE_STATUSES.entries()) {
+      await dataSource.query(
+        insertIssueSql({
+          number: String(index + 1),
+          status: `'${status}'`,
+          closed_at: status === 'DONE' ? `'${AT}'` : 'NULL',
+        }),
+      );
+    }
 
     // Then
-    const rows: unknown[] = await dataSource.query(`SELECT id FROM issues`);
-    expect(rows).toHaveLength(1);
+    const rows: unknown = await dataSource.query(`SELECT status FROM issues ORDER BY number`);
+    expect(rows).toEqual(ISSUE_STATUSES.map((status) => ({ status })));
   });
 
   test('주인 없는 이슈가 생기지 않도록 없는 프로젝트의 이슈를 거부한다', async () => {

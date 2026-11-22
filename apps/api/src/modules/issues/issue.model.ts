@@ -30,19 +30,19 @@ export interface ClosedIssue extends IssueBase {
 // service와 저장소가 다루는 이슈
 export type Issue = OpenIssue | ClosedIssue;
 
-interface ActivityBase {
+interface IssueEventBase {
   id: number;
   issueId: number;
   at: Date;
 }
 
-// 이슈에 남는 활동 기록
-export type Activity =
-  | (ActivityBase & { kind: 'CREATED' })
-  | (ActivityBase & { kind: 'STATUS'; from: IssueStatus; to: IssueStatus });
+// 이슈에 일어난 일을 한 줄씩 남기는 이력
+export type IssueEvent =
+  | (IssueEventBase & { kind: 'CREATED' })
+  | (IssueEventBase & { kind: 'STATUS'; from: IssueStatus; to: IssueStatus });
 
 // 저장 전이라 id가 없는 상태 변경 기록
-export interface NewStatusActivity {
+export interface NewStatusEvent {
   at: Date;
   from: IssueStatus;
   to: IssueStatus;

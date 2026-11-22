@@ -13,6 +13,12 @@ describe('공개 오류 코드', () => {
       'NOT_FOUND',
       'PROJECT_NOT_FOUND',
       'PROJECT_NAME_TAKEN',
+      'ISSUE_NOT_FOUND',
+      'ISSUE_VERSION_CONFLICT',
+      'ISSUE_TRANSITION_NOT_ALLOWED',
+      'ISSUE_CLOSED',
+      'ISSUE_UNDO_NOTHING',
+      'ISSUE_UNDO_EXPIRED',
       'INTERNAL',
     ]);
   });

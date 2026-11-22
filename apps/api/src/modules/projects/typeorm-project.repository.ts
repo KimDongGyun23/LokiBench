@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, type Repository } from 'typeorm';
 
+import { parseStoredInstant } from '../../database/utils/parse-stored-instant';
 import { DomainError } from '../../errors/domain-error';
 import { ProjectEntity } from './project.entity';
 import type { CreateProjectInput, Project, UpdateProjectInput } from './project.model';
@@ -83,26 +84,12 @@ function toProjectModel(entity: ProjectEntity): Project {
     id: entity.id,
     name: entity.name,
     color: entity.color,
-    createdAt: parseStoredInstant(entity.createdAt, 'created_at', entity.id),
+    createdAt: parseStoredInstant({
+      value: entity.createdAt,
+      column: 'projects.created_at',
+      id: entity.id,
+    }),
   };
-}
-
-/**
- * DB에 저장한 시각 문자열을 Date로 바꾼다.
- *
- * - 읽을 수 없는 값은 응답 변환에서 원인 모를 RangeError가 나기 전에 여기서 막는다
- *
- * @param value DB에 저장된 시각 문자열
- * @param column 오류에 적을 열 이름
- * @param id 오류에 적을 행 id
- * @returns 바꾼 시각
- */
-function parseStoredInstant(value: string, column: string, id: number): Date {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    throw new Error(`projects.${column} 시각 형식이 잘못됨: id=${id}`);
-  }
-  return date;
 }
 
 /**

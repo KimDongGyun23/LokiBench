@@ -61,15 +61,15 @@ describe('이슈 테이블 만들기', () => {
 
   test('첫 이슈가 1번을 받도록 번호 카운터를 0인 행 하나로 시작한다', async () => {
     // When
-    const settings: unknown = await dataSource.query(`SELECT * FROM app_settings`);
+    const counter: unknown = await dataSource.query(`SELECT * FROM issue_counter`);
 
     // Then
-    expect(settings).toEqual([{ id: 1, issue_counter: 0 }]);
+    expect(counter).toEqual([{ id: 1, value: 0 }]);
   });
 
-  test('카운터가 둘로 갈리지 않도록 설정 행을 하나 더 넣지 못한다', async () => {
+  test('카운터가 둘로 갈리지 않도록 카운터 행을 하나 더 넣지 못한다', async () => {
     // When
-    const insert = dataSource.query(`INSERT INTO app_settings (id, issue_counter) VALUES (2, 0)`);
+    const insert = dataSource.query(`INSERT INTO issue_counter (id, value) VALUES (2, 0)`);
 
     // Then
     await expect(insert).rejects.toThrow(CHECK_VIOLATION);

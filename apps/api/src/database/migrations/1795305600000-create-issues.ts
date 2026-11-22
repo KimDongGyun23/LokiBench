@@ -9,7 +9,7 @@ import type { MigrationInterface, QueryRunner } from 'typeorm';
  */
 export class CreateIssues1795305600000 implements MigrationInterface {
   /**
-   * issues, activities, app_settings 테이블을 만든다.
+   * issues, activities, issue_counter 테이블을 만든다.
    *
    * @param queryRunner 마이그레이션 트랜잭션 안에서 SQL을 실행하는 연결
    */
@@ -44,12 +44,12 @@ export class CreateIssues1795305600000 implements MigrationInterface {
     await queryRunner.query(`CREATE INDEX activities_issue_id_id ON activities (issue_id, id)`);
 
     await queryRunner.query(`
-      CREATE TABLE app_settings (
+      CREATE TABLE issue_counter (
         id INTEGER PRIMARY KEY CHECK (id = 1),
-        issue_counter INTEGER NOT NULL
+        value INTEGER NOT NULL
       )
     `);
-    await queryRunner.query(`INSERT INTO app_settings (id, issue_counter) VALUES (1, 0)`);
+    await queryRunner.query(`INSERT INTO issue_counter (id, value) VALUES (1, 0)`);
   }
 
   /**
@@ -61,7 +61,7 @@ export class CreateIssues1795305600000 implements MigrationInterface {
    * @param queryRunner 마이그레이션 트랜잭션 안에서 SQL을 실행하는 연결
    */
   async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP TABLE app_settings`);
+    await queryRunner.query(`DROP TABLE issue_counter`);
     await queryRunner.query(`DROP TABLE activities`);
     await queryRunner.query(`DROP TABLE issues`);
   }

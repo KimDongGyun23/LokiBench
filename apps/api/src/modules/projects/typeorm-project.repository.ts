@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, type Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
 
+import { isUniqueViolation } from '../../database/utils/is-unique-violation';
 import { parseStoredInstant } from '../../database/utils/parse-stored-instant';
 import { DomainError } from '../../errors/domain-error';
 import { ProjectEntity } from './project.entity';
@@ -90,26 +91,4 @@ function toProjectModel(entity: ProjectEntity): Project {
       id: entity.id,
     }),
   };
-}
-
-/**
- * sqlite의 UNIQUE 제약 위반인지 확인한다.
- *
- * - projects에서 UNIQUE가 걸린 열은 name뿐이라 이름 중복으로 본다
- *
- * @param error 저장 중 난 예외
- * @returns UNIQUE 위반이면 true
- */
-function isUniqueViolation(error: unknown): boolean {
-  if (!(error instanceof QueryFailedError)) {
-    return false;
-  }
-
-  const driverError: unknown = error.driverError;
-  return (
-    typeof driverError === 'object' &&
-    driverError !== null &&
-    'code' in driverError &&
-    driverError.code === 'SQLITE_CONSTRAINT_UNIQUE'
-  );
 }

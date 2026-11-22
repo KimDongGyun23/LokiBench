@@ -27,7 +27,7 @@ export interface ClosedIssue extends IssueBase {
   closedAt: Date;
 }
 
-// service와 저장소가 다루는 이슈
+// service와 repository가 다루는 이슈
 export type Issue = OpenIssue | ClosedIssue;
 
 interface IssueEventBase {

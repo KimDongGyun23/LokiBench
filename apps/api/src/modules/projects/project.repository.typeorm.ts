@@ -11,7 +11,7 @@ import type { CreateProjectInput, Project, UpdateProjectInput } from './project.
 import { ProjectRepository } from './project.repository';
 
 /**
- * sqlite에 프로젝트를 읽고 쓰는 저장소 구현체다.
+ * sqlite에 프로젝트를 읽고 쓰는 repository 구현체다.
  */
 @Injectable()
 export class TypeOrmProjectRepository extends ProjectRepository {

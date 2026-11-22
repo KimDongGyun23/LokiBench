@@ -1,7 +1,7 @@
 import type { CreateProjectInput, Project, UpdateProjectInput } from './project.model';
 
 /**
- * 프로젝트 저장소의 약속이다.
+ * 프로젝트 repository의 약속이다.
  *
  * - Nest가 추상 클래스를 주입 토큰으로 쓸 수 있어서 interface 대신 abstract class로 둔다
  */

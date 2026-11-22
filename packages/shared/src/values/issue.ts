@@ -1,4 +1,4 @@
-// 배열 순서가 보드의 열 순서임
+// 이슈 상태 목록 (순서가 보드의 열 순서)
 export const ISSUE_STATUSES = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'] as const;
 export type IssueStatus = (typeof ISSUE_STATUSES)[number];
 

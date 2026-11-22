@@ -1,5 +1,7 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
+import type { Activity } from './issue.model';
+
 /**
  * activities 테이블의 한 행을 TypeORM에 알려 주는 엔티티다.
  *
@@ -18,7 +20,7 @@ export class ActivityEntity {
   at!: string;
 
   @Column({ type: 'text' })
-  kind!: 'CREATED' | 'STATUS';
+  kind!: Activity['kind'];
 
   // 상태 변경 기록만 이전 상태와 새 상태를 JSON 글자로 가짐
   @Column({ type: 'text', nullable: true })

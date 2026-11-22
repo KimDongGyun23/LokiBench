@@ -8,6 +8,10 @@ import { CreateIssues1795305600000 } from './1795305600000-create-issues';
 
 const AT = '2026-11-22T00:00:00.000Z';
 
+// SQLite가 제약 종류별로 내는 오류 문구
+const CHECK_VIOLATION = /CHECK constraint failed/;
+const FOREIGN_KEY_VIOLATION = /FOREIGN KEY constraint failed/;
+
 let dataSource: DataSource;
 
 beforeEach(async () => {
@@ -68,7 +72,7 @@ describe('이슈 테이블 만들기', () => {
     const insert = dataSource.query(`INSERT INTO app_settings (id, issue_counter) VALUES (2, 0)`);
 
     // Then
-    await expect(insert).rejects.toThrow();
+    await expect(insert).rejects.toThrow(CHECK_VIOLATION);
   });
 });
 
@@ -95,7 +99,7 @@ describe('이슈 행의 제약', () => {
     const insert = dataSource.query(insertIssueSql({ project_id: '999' }));
 
     // Then
-    await expect(insert).rejects.toThrow();
+    await expect(insert).rejects.toThrow(FOREIGN_KEY_VIOLATION);
   });
 
   test('번호로 이슈 하나를 가리킬 수 있도록 같은 번호를 거부한다', async () => {
@@ -106,7 +110,7 @@ describe('이슈 행의 제약', () => {
     const insert = dataSource.query(insertIssueSql());
 
     // Then
-    await expect(insert).rejects.toThrow();
+    await expect(insert).rejects.toThrow(/UNIQUE constraint failed: issues\.number/);
   });
 
   test('네 상태 밖의 값은 거부한다', async () => {
@@ -114,7 +118,7 @@ describe('이슈 행의 제약', () => {
     const insert = dataSource.query(insertIssueSql({ status: `'BACKLOG'` }));
 
     // Then
-    await expect(insert).rejects.toThrow();
+    await expect(insert).rejects.toThrow(CHECK_VIOLATION);
   });
 
   test('닫힌 이슈와 닫은 시각이 어긋나지 않도록 DONE인데 닫은 시각이 없으면 거부한다', async () => {
@@ -122,7 +126,7 @@ describe('이슈 행의 제약', () => {
     const insert = dataSource.query(insertIssueSql({ status: `'DONE'` }));
 
     // Then
-    await expect(insert).rejects.toThrow();
+    await expect(insert).rejects.toThrow(CHECK_VIOLATION);
   });
 
   test('닫힌 이슈와 닫은 시각이 어긋나지 않도록 열린 이슈에 닫은 시각이 있으면 거부한다', async () => {
@@ -130,7 +134,7 @@ describe('이슈 행의 제약', () => {
     const insert = dataSource.query(insertIssueSql({ closed_at: `'${AT}'` }));
 
     // Then
-    await expect(insert).rejects.toThrow();
+    await expect(insert).rejects.toThrow(CHECK_VIOLATION);
   });
 });
 
@@ -160,7 +164,7 @@ describe('활동 기록 행의 제약', () => {
     );
 
     // Then
-    await expect(insert).rejects.toThrow();
+    await expect(insert).rejects.toThrow(CHECK_VIOLATION);
   });
 
   test('만든 기록이 상태 변경으로 읽히지 않도록 만든 기록에 내용이 있으면 거부한다', async () => {
@@ -170,7 +174,7 @@ describe('활동 기록 행의 제약', () => {
     );
 
     // Then
-    await expect(insert).rejects.toThrow();
+    await expect(insert).rejects.toThrow(CHECK_VIOLATION);
   });
 
   test('두 종류 밖의 기록은 거부한다', async () => {
@@ -180,7 +184,7 @@ describe('활동 기록 행의 제약', () => {
     );
 
     // Then
-    await expect(insert).rejects.toThrow();
+    await expect(insert).rejects.toThrow(CHECK_VIOLATION);
   });
 
   test('없는 이슈의 기록을 거부한다', async () => {
@@ -190,6 +194,6 @@ describe('활동 기록 행의 제약', () => {
     );
 
     // Then
-    await expect(insert).rejects.toThrow();
+    await expect(insert).rejects.toThrow(FOREIGN_KEY_VIOLATION);
   });
 });

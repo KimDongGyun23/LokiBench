@@ -69,4 +69,11 @@ describe('이슈 목록 조회', () => {
     expect(listIssuesQuerySchema.safeParse({ projectId: '1.5' }).success).toBe(false);
     expect(listIssuesQuerySchema.safeParse({}).success).toBe(false);
   });
+
+  test('경로의 id와 같은 기준을 지키기 위해 숫자 글자가 아닌 표기는 거부한다', () => {
+    expect(listIssuesQuerySchema.safeParse({ projectId: '1e2' }).success).toBe(false);
+    expect(listIssuesQuerySchema.safeParse({ projectId: '0x10' }).success).toBe(false);
+    expect(listIssuesQuerySchema.safeParse({ projectId: ' 3 ' }).success).toBe(false);
+    expect(listIssuesQuerySchema.safeParse({ projectId: '0' }).success).toBe(false);
+  });
 });

@@ -51,9 +51,9 @@ export type UpdateIssueRequest = z.infer<typeof updateIssueRequestSchema>;
 export const undoIssueStatusRequestSchema = z.object({ version: issueVersionSchema });
 export type UndoIssueStatusRequest = z.infer<typeof undoIssueStatusRequestSchema>;
 
-// 쿼리는 글자로 오므로 숫자로 바꿔서 검사함
+// 쿼리는 글자로 오므로 숫자 글자만 받아 숫자로 바꿈
 export const listIssuesQuerySchema = z.object({
-  projectId: z.coerce.number().int().positive(),
+  projectId: z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().positive()),
 });
 export type ListIssuesQuery = z.infer<typeof listIssuesQuerySchema>;
 

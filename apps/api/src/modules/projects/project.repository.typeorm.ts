@@ -3,9 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 
 import { isUniqueViolation } from '../../database/utils/is-unique-violation';
-import { parseStoredInstant } from '../../database/utils/parse-stored-instant';
 import { DomainError } from '../../errors/domain-error';
 import { ProjectEntity } from './project.entity';
+import { toProjectModel } from './project.mapper';
 import type { CreateProjectInput, Project, UpdateProjectInput } from './project.model';
 import { ProjectRepository } from './project.repository';
 
@@ -70,25 +70,4 @@ export class TypeOrmProjectRepository extends ProjectRepository {
       throw error;
     }
   }
-}
-
-/**
- * 엔티티를 도메인 프로젝트로 바꾼다.
- *
- * - DB에 ISO 문자열로 저장한 시각을 Date로 바꾼다
- *
- * @param entity DB에서 읽은 엔티티
- * @returns service가 다루는 도메인 프로젝트
- */
-function toProjectModel(entity: ProjectEntity): Project {
-  return {
-    id: entity.id,
-    name: entity.name,
-    color: entity.color,
-    createdAt: parseStoredInstant({
-      value: entity.createdAt,
-      column: 'projects.created_at',
-      id: entity.id,
-    }),
-  };
 }

@@ -2,6 +2,19 @@
 export const ISSUE_STATUSES = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'] as const;
 export type IssueStatus = (typeof ISSUE_STATUSES)[number];
 
+// 닫힌 이슈의 상태
+export const CLOSED_ISSUE_STATUS = 'DONE' satisfies IssueStatus;
+export type ClosedIssueStatus = typeof CLOSED_ISSUE_STATUS;
+
+// 닫히지 않은 이슈가 가질 수 있는 상태
+export type OpenIssueStatus = Exclude<IssueStatus, ClosedIssueStatus>;
+
+// 새로 만든 이슈가 처음 갖는 상태
+export const INITIAL_ISSUE_STATUS = 'TODO' satisfies OpenIssueStatus;
+
+// 닫힌 이슈를 다시 열 때 갈 수 있는 유일한 상태
+export const REOPEN_ISSUE_STATUS = 'TODO' satisfies OpenIssueStatus;
+
 // 이슈 규칙을 어겼을 때 알리는 오류 코드
 export const ISSUE_ERROR_CODES = [
   'ISSUE_NOT_FOUND',

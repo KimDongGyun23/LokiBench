@@ -138,7 +138,7 @@ describe('이슈 행의 제약', () => {
   });
 });
 
-describe('활동 기록 행의 제약', () => {
+describe('이슈 이력 행의 제약', () => {
   beforeEach(async () => {
     await dataSource.query(insertIssueSql());
   });
@@ -146,21 +146,21 @@ describe('활동 기록 행의 제약', () => {
   test('만든 기록과 상태 변경 기록을 넣을 수 있다', async () => {
     // When
     await dataSource.query(
-      `INSERT INTO activities (issue_id, at, kind, payload) VALUES (1, '${AT}', 'CREATED', NULL)`,
+      `INSERT INTO issue_events (issue_id, at, kind, payload) VALUES (1, '${AT}', 'CREATED', NULL)`,
     );
     await dataSource.query(
-      `INSERT INTO activities (issue_id, at, kind, payload) VALUES (1, '${AT}', 'STATUS', '{"from":"TODO","to":"IN_PROGRESS"}')`,
+      `INSERT INTO issue_events (issue_id, at, kind, payload) VALUES (1, '${AT}', 'STATUS', '{"from":"TODO","to":"IN_PROGRESS"}')`,
     );
 
     // Then
-    const rows: unknown[] = await dataSource.query(`SELECT id FROM activities`);
+    const rows: unknown[] = await dataSource.query(`SELECT id FROM issue_events`);
     expect(rows).toHaveLength(2);
   });
 
   test('되돌리기가 이전 상태를 읽을 수 있도록 상태 변경 기록에 내용이 없으면 거부한다', async () => {
     // When
     const insert = dataSource.query(
-      `INSERT INTO activities (issue_id, at, kind, payload) VALUES (1, '${AT}', 'STATUS', NULL)`,
+      `INSERT INTO issue_events (issue_id, at, kind, payload) VALUES (1, '${AT}', 'STATUS', NULL)`,
     );
 
     // Then
@@ -170,7 +170,7 @@ describe('활동 기록 행의 제약', () => {
   test('만든 기록이 상태 변경으로 읽히지 않도록 만든 기록에 내용이 있으면 거부한다', async () => {
     // When
     const insert = dataSource.query(
-      `INSERT INTO activities (issue_id, at, kind, payload) VALUES (1, '${AT}', 'CREATED', '{"from":"TODO","to":"IN_PROGRESS"}')`,
+      `INSERT INTO issue_events (issue_id, at, kind, payload) VALUES (1, '${AT}', 'CREATED', '{"from":"TODO","to":"IN_PROGRESS"}')`,
     );
 
     // Then
@@ -180,7 +180,7 @@ describe('활동 기록 행의 제약', () => {
   test('두 종류 밖의 기록은 거부한다', async () => {
     // When
     const insert = dataSource.query(
-      `INSERT INTO activities (issue_id, at, kind, payload) VALUES (1, '${AT}', 'COMMENT', NULL)`,
+      `INSERT INTO issue_events (issue_id, at, kind, payload) VALUES (1, '${AT}', 'COMMENT', NULL)`,
     );
 
     // Then
@@ -190,7 +190,7 @@ describe('활동 기록 행의 제약', () => {
   test('없는 이슈의 기록을 거부한다', async () => {
     // When
     const insert = dataSource.query(
-      `INSERT INTO activities (issue_id, at, kind, payload) VALUES (999, '${AT}', 'CREATED', NULL)`,
+      `INSERT INTO issue_events (issue_id, at, kind, payload) VALUES (999, '${AT}', 'CREATED', NULL)`,
     );
 
     // Then

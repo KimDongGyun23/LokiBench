@@ -1,7 +1,10 @@
 import { CLOSED_ISSUE_STATUS, type IssueStatus, REOPEN_ISSUE_STATUS } from '@lokibench/domain';
 
 import { DomainError } from '../../common/domain-error';
-import type { Issue, IssueChanges, NewStatusEvent } from './issue.model';
+import type { Issue, IssueChanges, IssueEvent, NewStatusEvent } from './issue.model';
+
+// 상태를 바꾼 뒤 되돌릴 수 있는 시간
+export const STATUS_UNDO_WINDOW_MS = 5 * 60 * 1000;
 
 // 수정 요청을 이슈에 적용한 결과
 export type IssueUpdateResult =
@@ -54,6 +57,55 @@ export function applyIssueUpdate(
     kind: 'changed',
     issue: withStatus({ ...issue, title, due, version }, status, now),
     event: { at: now, from: issue.status, to: status },
+  };
+}
+
+// 상태 되돌리기를 이슈에 적용한 결과
+export interface IssueUndoResult {
+  issue: Issue;
+  removedEventId: number;
+}
+
+/**
+ * 마지막 상태 변경을 되돌려 저장할 이슈와 지울 이력을 정한다.
+ *
+ * - 마지막 이력이 상태 변경이고 그 시각에서 5분이 지나지 않았을 때만 되돌린다 (정확히 5분은 허용)
+ * - 상태를 바꾼 시각과 닫은 시각은 바로 앞 이력의 시각으로 돌린다
+ * - 이력과 이슈가 어긋난 데이터는 규칙 위반이 아니라 일반 오류로 던져 500으로 드러나게 한다
+ *
+ * @param issue 지금 저장돼 있는 이슈
+ * @param events 그 이슈의 이력을 최신 순으로 둘까지
+ * @param now 되돌리는 시각
+ * @returns version이 1 오른 이슈와 지울 이력의 id
+ * @throws {DomainError} ISSUE_UNDO_NOTHING, ISSUE_UNDO_EXPIRED
+ */
+export function undoIssueStatus(
+  issue: Issue,
+  events: readonly IssueEvent[],
+  now: Date,
+): IssueUndoResult {
+  const last = events.at(0);
+  const previous = events.at(1);
+
+  // 마지막 이력이 상태 변경이 아니면 되돌릴 것이 없음
+  if (last?.kind !== 'STATUS') throw new DomainError('ISSUE_UNDO_NOTHING');
+
+  // 되돌릴 수 있는 시간이 지났음
+  const elapsedMs = now.getTime() - last.at.getTime();
+  if (elapsedMs > STATUS_UNDO_WINDOW_MS) throw new DomainError('ISSUE_UNDO_EXPIRED');
+
+  if (last.to !== issue.status) {
+    throw new Error(`이슈 이력이 지금 상태와 이어지지 않음: issueId=${issue.id}`);
+  }
+
+  if (previous === undefined) {
+    throw new Error(`되돌릴 이력의 앞 이력이 없음: issueId=${issue.id}`);
+  }
+
+  const version = issue.version + 1;
+  return {
+    issue: withStatus({ ...issue, version }, last.from, previous.at),
+    removedEventId: last.id,
   };
 }
 

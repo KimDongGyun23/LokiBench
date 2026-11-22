@@ -1,11 +1,14 @@
-import type { OpenIssueStatus } from '@lokibench/domain';
+import type { IssueStatus, OpenIssueStatus } from '@lokibench/domain';
 
-import type { ClosedIssue, OpenIssue } from './issue.model';
-import { applyIssueUpdate } from './issue.rules';
+import type { ClosedIssue, IssueEvent, OpenIssue } from './issue.model';
+import { applyIssueUpdate, STATUS_UNDO_WINDOW_MS, undoIssueStatus } from './issue.rules';
 
 const CREATED_AT = new Date('2026-11-20T09:00:00.000Z');
 const CLOSED_AT = new Date('2026-11-21T09:00:00.000Z');
 const NOW = new Date('2026-11-22T09:00:00.000Z');
+
+// 되돌리기 테스트에서 마지막으로 상태를 바꾼 시각 (NOW의 1분 전)
+const CHANGED_AT = new Date('2026-11-22T08:59:00.000Z');
 
 // 주어진 상태의 열린 이슈를 만듦
 function openIssue(status: OpenIssueStatus = 'TODO'): OpenIssue {
@@ -26,6 +29,16 @@ function openIssue(status: OpenIssueStatus = 'TODO'): OpenIssue {
 // CLOSED_AT에 닫힌 이슈를 만듦
 function closedIssue(): ClosedIssue {
   return { ...openIssue(), status: 'DONE', statusChangedAt: CLOSED_AT, closedAt: CLOSED_AT };
+}
+
+// CREATED_AT에 남은 만든 이력을 만듦
+function createdEvent(): IssueEvent {
+  return { id: 1, issueId: 1, at: CREATED_AT, kind: 'CREATED' };
+}
+
+// 주어진 시각의 상태 변경 이력을 만듦
+function statusEvent(id: number, at: Date, from: IssueStatus, to: IssueStatus): IssueEvent {
+  return { id, issueId: 1, at, kind: 'STATUS', from, to };
 }
 
 describe('상태 이동', () => {
@@ -181,5 +194,97 @@ describe('닫힌 이슈 수정', () => {
 
     // Then
     expect(attempt).toThrow(expect.objectContaining({ code: 'ISSUE_CLOSED' }));
+  });
+});
+
+describe('상태 되돌리기', () => {
+  test('되돌릴 상태 변경이 없으므로 마지막 이력이 만든 이력이면 거부한다', () => {
+    // When
+    const attempt = () => undoIssueStatus(openIssue(), [createdEvent()], NOW);
+
+    // Then
+    expect(attempt).toThrow(expect.objectContaining({ code: 'ISSUE_UNDO_NOTHING' }));
+  });
+
+  test('닫은 것을 되돌리면 이전 상태로 돌리고 닫은 시각을 비우며 바꾼 시각은 앞 이력의 시각으로 돌린다', () => {
+    // Given: CHANGED_AT에 TODO에서 DONE으로 닫힌 이슈
+    const issue = { ...closedIssue(), statusChangedAt: CHANGED_AT, closedAt: CHANGED_AT };
+    const events = [statusEvent(2, CHANGED_AT, 'TODO', 'DONE'), createdEvent()];
+
+    // When
+    const result = undoIssueStatus(issue, events, NOW);
+
+    // Then
+    expect(result).toEqual({
+      issue: { ...openIssue('TODO'), statusChangedAt: CREATED_AT, version: 4 },
+      removedEventId: 2,
+    });
+  });
+
+  test('다시 연 것을 되돌리면 닫은 시각과 바꾼 시각이 닫았던 시각으로 돌아온다', () => {
+    // Given: CLOSED_AT에 닫았다가 CHANGED_AT에 다시 연 이슈
+    const issue = { ...openIssue('TODO'), statusChangedAt: CHANGED_AT };
+    const events = [
+      statusEvent(3, CHANGED_AT, 'DONE', 'TODO'),
+      statusEvent(2, CLOSED_AT, 'TODO', 'DONE'),
+    ];
+
+    // When
+    const result = undoIssueStatus(issue, events, NOW);
+
+    // Then
+    expect(result).toEqual({ issue: { ...closedIssue(), version: 4 }, removedEventId: 3 });
+  });
+
+  test('실수를 바로잡을 시간을 주기 위해 바꾼 직후부터 정확히 5분 뒤까지는 되돌릴 수 있다', () => {
+    // Given: CHANGED_AT에 TODO에서 IN_PROGRESS로 옮긴 이슈
+    const issue = { ...openIssue('IN_PROGRESS'), statusChangedAt: CHANGED_AT };
+    const events = [statusEvent(2, CHANGED_AT, 'TODO', 'IN_PROGRESS'), createdEvent()];
+    const windowEnd = new Date(CHANGED_AT.getTime() + STATUS_UNDO_WINDOW_MS);
+
+    // When
+    const atOnce = undoIssueStatus(issue, events, CHANGED_AT);
+    const atWindowEnd = undoIssueStatus(issue, events, windowEnd);
+
+    // Then
+    expect(atOnce.issue.status).toBe('TODO');
+    expect(atWindowEnd.issue.status).toBe('TODO');
+  });
+
+  test('오래된 변경을 뒤늦게 뒤집지 못하도록 5분을 1ms라도 넘기면 거부한다', () => {
+    // Given: CHANGED_AT에 TODO에서 IN_PROGRESS로 옮긴 이슈
+    const issue = { ...openIssue('IN_PROGRESS'), statusChangedAt: CHANGED_AT };
+    const events = [statusEvent(2, CHANGED_AT, 'TODO', 'IN_PROGRESS'), createdEvent()];
+    const afterWindow = new Date(CHANGED_AT.getTime() + STATUS_UNDO_WINDOW_MS + 1);
+
+    // When
+    const attempt = () => undoIssueStatus(issue, events, afterWindow);
+
+    // Then
+    expect(attempt).toThrow(expect.objectContaining({ code: 'ISSUE_UNDO_EXPIRED' }));
+  });
+
+  test('어긋난 데이터를 규칙 위반으로 숨기지 않도록 이력의 새 상태가 지금 상태와 다르면 내부 오류로 던진다', () => {
+    // Given: 이력은 IN_PROGRESS로 옮겼다고 하는데 이슈는 IN_REVIEW임
+    const issue = { ...openIssue('IN_REVIEW'), statusChangedAt: CHANGED_AT };
+    const events = [statusEvent(2, CHANGED_AT, 'TODO', 'IN_PROGRESS'), createdEvent()];
+
+    // When
+    const attempt = () => undoIssueStatus(issue, events, NOW);
+
+    // Then
+    expect(attempt).toThrow('이슈 이력이 지금 상태와 이어지지 않음: issueId=1');
+  });
+
+  test('어긋난 데이터를 규칙 위반으로 숨기지 않도록 상태 변경 이력의 앞 이력이 없으면 내부 오류로 던진다', () => {
+    // Given: 만든 이력 없이 상태 변경 이력만 있음
+    const issue = { ...openIssue('IN_PROGRESS'), statusChangedAt: CHANGED_AT };
+    const events = [statusEvent(2, CHANGED_AT, 'TODO', 'IN_PROGRESS')];
+
+    // When
+    const attempt = () => undoIssueStatus(issue, events, NOW);
+
+    // Then
+    expect(attempt).toThrow('되돌릴 이력의 앞 이력이 없음: issueId=1');
   });
 });

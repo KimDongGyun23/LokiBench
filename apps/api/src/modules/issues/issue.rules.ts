@@ -1,4 +1,9 @@
-import { CLOSED_ISSUE_STATUS, type IssueStatus, REOPEN_ISSUE_STATUS } from '@lokibench/domain';
+import {
+  CLOSED_ISSUE_STATUS,
+  INITIAL_ISSUE_STATUS,
+  type IssueStatus,
+  REOPEN_ISSUE_STATUS,
+} from '@lokibench/domain';
 
 import { DomainError } from '../../common/domain-error';
 import type { Issue, IssueChanges, IssueEvent, NewStatusEvent } from './issue.model';
@@ -100,6 +105,12 @@ export function undoIssueStatus(
 
   if (previous === undefined) {
     throw new Error(`되돌릴 이력의 앞 이력이 없음: issueId=${issue.id}`);
+  }
+
+  // 앞 이력이 남긴 상태가 되돌아갈 상태와 같아야 함
+  const statusAfterPrevious = previous.kind === 'CREATED' ? INITIAL_ISSUE_STATUS : previous.to;
+  if (statusAfterPrevious !== last.from) {
+    throw new Error(`되돌릴 이력이 앞 이력과 이어지지 않음: issueId=${issue.id}`);
   }
 
   const version = issue.version + 1;

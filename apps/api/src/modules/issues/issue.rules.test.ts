@@ -287,4 +287,24 @@ describe('상태 되돌리기', () => {
     // Then
     expect(attempt).toThrow('되돌릴 이력의 앞 이력이 없음: issueId=1');
   });
+
+  test('틀린 닫은 시각이 저장되지 않도록 앞 이력이 되돌릴 상태로 간 이력이 아니면 내부 오류로 던진다', () => {
+    // Given: 다시 연 이력 앞에 닫은 이력이 없고 만든 이력만 있음
+    const issue = { ...openIssue('TODO'), statusChangedAt: CHANGED_AT };
+    const afterCreated = [statusEvent(2, CHANGED_AT, 'DONE', 'TODO'), createdEvent()];
+
+    // Given: 앞 이력은 IN_REVIEW로 갔는데 마지막 이력은 IN_PROGRESS에서 왔다고 함
+    const afterStatus = [
+      statusEvent(3, CHANGED_AT, 'IN_PROGRESS', 'TODO'),
+      statusEvent(2, CLOSED_AT, 'TODO', 'IN_REVIEW'),
+    ];
+
+    // When
+    const attemptAfterCreated = () => undoIssueStatus(issue, afterCreated, NOW);
+    const attemptAfterStatus = () => undoIssueStatus(issue, afterStatus, NOW);
+
+    // Then
+    expect(attemptAfterCreated).toThrow('되돌릴 이력이 앞 이력과 이어지지 않음: issueId=1');
+    expect(attemptAfterStatus).toThrow('되돌릴 이력이 앞 이력과 이어지지 않음: issueId=1');
+  });
 });

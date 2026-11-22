@@ -1,7 +1,11 @@
+import { join } from 'node:path';
+
 import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // tsconfig의 paths와 같은 별칭
+  resolve: { alias: { '@': join(__dirname, 'src') } },
   test: {
     globals: true,
   },

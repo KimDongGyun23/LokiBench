@@ -1,6 +1,7 @@
 import type { Project as ProjectResponse } from '@lokibench/contracts';
 
-import { parseStoredInstant } from '../../database/utils/parse-stored-instant';
+import { parseStoredInstant } from '@/database/utils/parse-stored-instant';
+
 import type { ProjectEntity } from './project.entity';
 import type { Project } from './project.model';
 

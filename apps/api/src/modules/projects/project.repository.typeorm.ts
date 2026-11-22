@@ -2,8 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 
-import { isUniqueViolation } from '../../database/utils/is-unique-violation';
-import { DomainError } from '../../errors/domain-error';
+import { isUniqueViolation } from '@/database/utils/is-unique-violation';
+import { DomainError } from '@/errors/domain-error';
+
 import { ProjectEntity } from './project.entity';
 import { toProjectModel } from './project.mapper';
 import type { CreateProjectInput, Project, UpdateProjectInput } from './project.model';

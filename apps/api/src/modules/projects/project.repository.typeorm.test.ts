@@ -1,6 +1,7 @@
 import { DataSource } from 'typeorm';
 
-import { createDataSourceOptions } from '../../database/data-source-options';
+import { createDataSourceOptions } from '@/database/data-source-options';
+
 import { ProjectEntity } from './project.entity';
 import { TypeOrmProjectRepository } from './project.repository.typeorm';
 

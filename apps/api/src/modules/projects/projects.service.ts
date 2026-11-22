@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
-import { DomainError } from '../../errors/domain-error';
+import { DomainError } from '@/errors/domain-error';
+
 import type { CreateProjectCommand, Project, UpdateProjectCommand } from './project.model';
 import { ProjectRepository } from './project.repository';
 import { pickProjectColor } from './project.rules';

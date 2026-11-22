@@ -5,7 +5,8 @@ import {
   REOPEN_ISSUE_STATUS,
 } from '@lokibench/domain';
 
-import { DomainError } from '../../errors/domain-error';
+import { DomainError } from '@/errors/domain-error';
+
 import type { Issue, IssueChanges, IssueEvent, NewStatusEvent } from './issue.model';
 
 // 상태를 바꾼 뒤 되돌릴 수 있는 시간

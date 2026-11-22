@@ -1,9 +1,10 @@
 import type { DataSourceOptions } from 'typeorm';
 
-import { IssueEntity } from '../modules/issues/issue.entity';
-import { IssueCounterEntity } from '../modules/issues/issue-counter.entity';
-import { IssueEventEntity } from '../modules/issues/issue-event.entity';
-import { ProjectEntity } from '../modules/projects/project.entity';
+import { IssueEntity } from '@/modules/issues/issue.entity';
+import { IssueCounterEntity } from '@/modules/issues/issue-counter.entity';
+import { IssueEventEntity } from '@/modules/issues/issue-event.entity';
+import { ProjectEntity } from '@/modules/projects/project.entity';
+
 import { CreateProjects1792886400000 } from './migrations/1792886400000-create-projects';
 import { DropProjectsArchivedAt1795219200000 } from './migrations/1795219200000-drop-projects-archived-at';
 import { CreateIssues1795305600000 } from './migrations/1795305600000-create-issues';

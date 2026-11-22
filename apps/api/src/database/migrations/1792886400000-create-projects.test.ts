@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm';
 
-import { createDataSourceOptions } from '../data-source-options';
+import { createDataSourceOptions } from '@/database/data-source-options';
 
 // 도메인의 팔레트에 새 색이 더해진 미래 상황을 흉내 냄
 vi.mock('@lokibench/domain', async (importOriginal) => {

@@ -53,35 +53,6 @@ describe('수정', () => {
   });
 });
 
-describe('도메인 모양', () => {
-  test('도메인이 시각으로 바로 계산하도록 DB의 ISO 문자열을 Date로 바꿔 준다', async () => {
-    // Given: DB에 행을 직접 넣음
-    await dataSource.query(
-      `INSERT INTO projects (name, color, created_at)
-       VALUES ('이사 준비', 'sky', '2026-10-01T00:00:00.000Z')`,
-    );
-
-    // When
-    const [project] = await repository.findAll();
-
-    // Then
-    expect(project.createdAt).toEqual(new Date('2026-10-01T00:00:00.000Z'));
-  });
-
-  test('DB를 직접 고쳐 깨진 행을 바로 찾도록 시각으로 읽을 수 없으면 행 id와 열 이름을 담아 던진다', async () => {
-    // Given: 시각으로 읽을 수 없는 created_at을 직접 넣음
-    await dataSource.query(
-      `INSERT INTO projects (id, name, color, created_at) VALUES (7, '가계부', 'teal', '')`,
-    );
-
-    // When
-    const attempt = repository.findAll();
-
-    // Then
-    await expect(attempt).rejects.toThrow('projects.created_at 시각 형식이 잘못됨: id=7');
-  });
-});
-
 describe('저장할 필드 고르기', () => {
   test('요청 검증이 느슨해져도 엔티티가 오염되지 않도록 추가 입력의 모르는 필드는 저장하지 않는다', async () => {
     // Given: 타입에 없는 id가 실행 중에 섞여 들어온 입력

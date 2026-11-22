@@ -4,7 +4,7 @@ import { DataSource } from 'typeorm';
 
 import { ProjectEntity } from '../modules/projects/project.entity';
 import type { CreateProjectInput } from '../modules/projects/project.model';
-import { TypeOrmProjectRepository } from '../modules/projects/typeorm-project.repository';
+import { TypeOrmProjectRepository } from '../modules/projects/project.repository.typeorm';
 import { createDataSourceOptions } from './data-source-options';
 import { DATA_DIR, resolveDatabaseLocation } from './database-location';
 

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, type Repository } from 'typeorm';
 
-import { DomainError } from '../../common/domain-error';
+import { DomainError } from '../../errors/domain-error';
 import { ProjectEntity } from './project.entity';
 import type { CreateProjectInput, Project, UpdateProjectInput } from './project.model';
 import { ProjectRepository } from './project.repository';

@@ -30,7 +30,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # lint와 typecheck가 contracts의 타입 파일(dist)을 읽으므로 빌드를 먼저 함
+      # lint와 typecheck가 shared의 타입 파일(dist)을 읽으므로 빌드를 먼저 함
       - run: pnpm build
 
       - run: pnpm lint

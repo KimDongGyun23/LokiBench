@@ -31,9 +31,9 @@ beforeAll(() => {
   Logger.overrideLogger(false);
 });
 
-describe('서비스가 던진 오류', () => {
-  test('서비스가 정한 코드를 지키기 위해 DomainError는 담긴 코드와 details를 그대로 싣는다', () => {
-    // Given: 이름 중복으로 서비스가 던진 오류
+describe('service가 던진 오류', () => {
+  test('service가 정한 코드를 지키기 위해 DomainError는 담긴 코드와 details를 그대로 싣는다', () => {
+    // Given: 이름 중복으로 service가 던진 오류
     const exception = new DomainError('PROJECT_NAME_TAKEN', '같은 이름이 있음', { id: 1 });
 
     // When

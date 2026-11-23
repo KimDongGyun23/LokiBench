@@ -1,4 +1,4 @@
-import { errorResponseSchema } from '@lokibench/contracts';
+import { errorResponseSchema } from '@lokibench/shared/contracts';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 
@@ -45,7 +45,7 @@ describe('오류 응답 모양', () => {
   });
 
   test('깨진 JSON 본문은 VALIDATION으로 준다', async () => {
-    // Given: 컨트롤러가 없어도 본문 해석 단계에서 걸러져야 함
+    // Given: controller가 없어도 본문 해석 단계에서 걸러져야 함
     const testApp = await createTestApp();
     app = testApp.app;
 

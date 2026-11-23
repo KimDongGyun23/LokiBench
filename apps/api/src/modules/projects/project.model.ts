@@ -1,9 +1,6 @@
-import type { ProjectColor } from '@lokibench/domain';
+import type { ProjectColor } from '@lokibench/shared/values';
 
-// DB 열 모양(엔티티)과 응답 모양(계약)을 모르고, 둘은 각자 이 모양으로 바꿔서 주고받음
-// 시각은 도메인에서 바로 빼고 비교하도록 Date로 둠
-
-// service와 저장소가 다루는 프로젝트
+// service와 repository가 다루는 프로젝트
 export interface Project {
   id: number;
   name: string;
@@ -11,14 +8,14 @@ export interface Project {
   createdAt: Date;
 }
 
-// 저장소에 새 프로젝트를 만들 때 넘기는 값
+// service가 repository에 새 프로젝트를 만들 때 넘기는 값
 export type CreateProjectInput = Pick<Project, 'name' | 'color'>;
 
-// 저장소에서 프로젝트를 바꿀 때 넘기는 값
-export type UpdateProjectInput = Partial<CreateProjectInput>;
+// service가 repository에서 프로젝트를 바꿀 때 넘기는 값
+export type UpdateProjectInput = Partial<Pick<Project, 'name' | 'color'>>;
 
-// service에 새 프로젝트를 요청할 때 넘기는 값
-export type CreateProjectCommand = Pick<CreateProjectInput, 'name'>;
+// controller가 service에 새 프로젝트를 요청할 때 넘기는 값
+export type CreateProjectCommand = Pick<Project, 'name'>;
 
-// service에 프로젝트 수정을 요청할 때 넘기는 값
-export type UpdateProjectCommand = UpdateProjectInput;
+// controller가 service에 프로젝트 수정을 요청할 때 넘기는 값
+export type UpdateProjectCommand = Partial<Pick<Project, 'name' | 'color'>>;

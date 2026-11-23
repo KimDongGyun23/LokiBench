@@ -1,4 +1,4 @@
-import { type Project, updateProjectRequestSchema } from '@lokibench/contracts';
+import { type Project, updateProjectRequestSchema } from '@lokibench/shared/contracts';
 import { QueryClientProvider, useMutation, useQuery } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { delay, http, HttpResponse } from 'msw';

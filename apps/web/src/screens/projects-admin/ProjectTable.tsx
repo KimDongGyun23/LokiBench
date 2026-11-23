@@ -1,4 +1,4 @@
-import type { Project } from '@lokibench/contracts';
+import type { Project } from '@lokibench/shared/contracts';
 import { useState } from 'react';
 
 import { Skeleton, SkeletonBar } from '@/components/Skeleton';

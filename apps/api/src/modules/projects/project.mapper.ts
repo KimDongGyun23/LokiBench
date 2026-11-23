@@ -1,9 +1,30 @@
-import type { Project as ProjectResponse } from '@lokibench/contracts';
+import type { Project as ProjectResponse } from '@lokibench/shared/contracts';
 
+import { parseStoredInstant } from '@/database/utils/parse-stored-instant';
+
+import type { ProjectEntity } from './project.entity';
 import type { Project } from './project.model';
 
-// 도메인과 계약(HTTP 모양) 사이 변환만 둠
-// 엔티티와 도메인 사이 변환은 저장소 구현이 맡음
+/**
+ * 엔티티를 도메인 프로젝트로 바꾼다.
+ *
+ * - DB에 ISO 문자열로 저장한 시각을 Date로 바꾼다
+ *
+ * @param entity DB에서 읽은 엔티티
+ * @returns service가 다루는 도메인 프로젝트
+ */
+export function toProjectModel(entity: ProjectEntity): Project {
+  return {
+    id: entity.id,
+    name: entity.name,
+    color: entity.color,
+    createdAt: parseStoredInstant({
+      value: entity.createdAt,
+      column: 'projects.created_at',
+      id: entity.id,
+    }),
+  };
+}
 
 /**
  * 도메인 프로젝트를 계약의 응답 모양으로 바꾼다.

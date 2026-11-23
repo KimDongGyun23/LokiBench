@@ -1,4 +1,4 @@
-// 배열 순서가 보드의 열 순서임
+// 이슈 상태 목록 (순서가 보드의 열 순서)
 export const ISSUE_STATUSES = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'] as const;
 export type IssueStatus = (typeof ISSUE_STATUSES)[number];
 
@@ -14,6 +14,9 @@ export const INITIAL_ISSUE_STATUS = 'TODO' satisfies OpenIssueStatus;
 
 // 닫힌 이슈를 다시 열 때 갈 수 있는 유일한 상태
 export const REOPEN_ISSUE_STATUS = 'TODO' satisfies OpenIssueStatus;
+
+// 상태를 바꾼 뒤 되돌릴 수 있는 시간
+export const STATUS_UNDO_WINDOW_MS = 5 * 60 * 1000;
 
 // 이슈 규칙을 어겼을 때 알리는 오류 코드
 export const ISSUE_ERROR_CODES = [

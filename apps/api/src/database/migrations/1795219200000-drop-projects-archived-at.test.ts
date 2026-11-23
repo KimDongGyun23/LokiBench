@@ -1,6 +1,7 @@
 import { DataSource } from 'typeorm';
 
-import { createDataSourceOptions } from '../data-source-options';
+import { createDataSourceOptions } from '@/database/data-source-options';
+
 import { CreateProjects1792886400000 } from './1792886400000-create-projects';
 import { DropProjectsArchivedAt1795219200000 } from './1795219200000-drop-projects-archived-at';
 

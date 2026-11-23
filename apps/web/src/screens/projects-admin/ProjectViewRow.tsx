@@ -1,4 +1,4 @@
-import type { Project } from '@lokibench/contracts';
+import type { Project } from '@lokibench/shared/contracts';
 
 import { Button } from '@/components/Button';
 import type { ProjectColor } from '@/domains/projects/colors.constant';

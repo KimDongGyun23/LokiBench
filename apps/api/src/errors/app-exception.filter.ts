@@ -1,4 +1,4 @@
-import type { ErrorResponse } from '@lokibench/contracts';
+import type { ErrorResponse } from '@lokibench/shared/contracts';
 import {
   type ArgumentsHost,
   Catch,

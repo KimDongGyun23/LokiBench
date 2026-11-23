@@ -4,9 +4,6 @@ import type { IssueEvent } from './issue.model';
 
 /**
  * issue_events 테이블의 한 행을 TypeORM에 알려 주는 엔티티다.
- *
- * - 테이블 구조는 마이그레이션이 만들고, 이 클래스는 읽고 쓸 때의 열 이름만 맞춘다
- * - repository 밖으로는 내보내지 않고 도메인 IssueEvent로 바꿔서 넘긴다
  */
 @Entity('issue_events')
 export class IssueEventEntity {

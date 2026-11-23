@@ -1,4 +1,4 @@
-import { type ErrorCode, errorResponseSchema } from '@lokibench/contracts';
+import { type ErrorCode, errorResponseSchema } from '@lokibench/shared/contracts';
 import type { z } from 'zod';
 
 const API_PREFIX = '/api';

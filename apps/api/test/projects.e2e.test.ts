@@ -1,6 +1,6 @@
 import type { Server } from 'node:net';
 
-import { errorResponseSchema, projectSchema } from '@lokibench/contracts';
+import { errorResponseSchema, projectSchema } from '@lokibench/shared/contracts';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import type { DataSource } from 'typeorm';

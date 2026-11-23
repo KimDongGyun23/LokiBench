@@ -1,4 +1,4 @@
-import { PROJECT_COLORS, type ProjectColor } from '@lokibench/domain';
+import { PROJECT_COLORS, type ProjectColor } from '@lokibench/shared/values';
 
 import type { Project } from './project.model';
 

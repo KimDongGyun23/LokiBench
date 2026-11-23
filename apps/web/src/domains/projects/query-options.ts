@@ -1,4 +1,4 @@
-import { projectSchema } from '@lokibench/contracts';
+import { projectSchema } from '@lokibench/shared/contracts';
 import { queryOptions } from '@tanstack/react-query';
 import { z } from 'zod';
 

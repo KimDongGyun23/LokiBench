@@ -4,8 +4,8 @@ import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 
-import { AppModule } from '../src/app.module';
-import { configureApp } from '../src/configure-app';
+import { AppModule } from '@/app.module';
+import { configureApp } from '@/configure-app';
 
 /**
  * 인메모리 sqlite로 실제 앱과 같은 설정의 Nest 앱을 띄운다.

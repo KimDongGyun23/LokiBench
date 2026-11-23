@@ -1,0 +1,42 @@
+{
+  "name": "@lokibench/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./values": {
+      "import": {
+        "types": "./dist/values/index.d.ts",
+        "default": "./dist/values/index.js"
+      },
+      "require": {
+        "types": "./dist/values/index.d.cts",
+        "default": "./dist/values/index.cjs"
+      }
+    },
+    "./contracts": {
+      "import": {
+        "types": "./dist/contracts/index.d.ts",
+        "default": "./dist/contracts/index.js"
+      },
+      "require": {
+        "types": "./dist/contracts/index.d.cts",
+        "default": "./dist/contracts/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "tsup": "^9.0.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -22,4 +22,15 @@ describe('저장된 시각 읽기', () => {
     // Then
     expect(attempt).toThrow('issues.closed_at 시각 형식이 잘못됨: id=7');
   });
+
+  test('손으로 고친 행이 다른 순간으로 읽히지 않도록 앱이 저장하는 UTC 형식이 아니면 시각으로 읽혀도 던진다', () => {
+    // Given: Z가 없어 로컬 시각으로 해석되는 값
+    const stored = { value: '2026-10-01 09:00', column: 'projects.created_at', id: 3 };
+
+    // When
+    const attempt = () => parseStoredInstant(stored);
+
+    // Then
+    expect(attempt).toThrow('projects.created_at 시각 형식이 잘못됨: id=3');
+  });
 });

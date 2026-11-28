@@ -641,4 +641,30 @@ describe('상태 되돌리기', () => {
     expect(undone).toMatchObject({ status: 'DONE', title: '새 제목' });
     await expectStatusClockInSync(issue.id);
   });
+
+  test.each([
+    ['version이 없는 요청은', {}],
+    ['version이 글자인 요청은', { version: '1' }],
+  ])('잘못된 요청을 충돌로 오해하지 않도록 %s VALIDATION을 준다', async (_, body) => {
+    // Given
+    const project = await addProject('가계부');
+    const issue = await addIssue(project.id, '영수증 정리');
+    await changeIssue(issue.id, { version: 1, status: 'IN_PROGRESS' });
+
+    // When
+    const response = await request(server).post(`/api/issues/${issue.id}/undo-status`).send(body);
+
+    // Then
+    expect(response.status).toBe(400);
+    expect(errorResponseSchema.parse(response.body).code).toBe('VALIDATION');
+  });
+
+  test('없는 이슈를 화면이 구분하도록 없는 id를 되돌리면 ISSUE_NOT_FOUND를 준다', async () => {
+    // When
+    const response = await undoStatus(999, 1);
+
+    // Then
+    expect(response.status).toBe(404);
+    expect(errorResponseSchema.parse(response.body).code).toBe('ISSUE_NOT_FOUND');
+  });
 });

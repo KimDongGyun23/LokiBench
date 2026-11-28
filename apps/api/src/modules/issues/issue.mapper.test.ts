@@ -1,5 +1,5 @@
 import type { IssueEntity } from './issue.entity';
-import { toIssueEventModel, toIssueModel } from './issue.mapper';
+import { toIssueEntityUpdate, toIssueEventModel, toIssueModel } from './issue.mapper';
 import type { IssueEventEntity } from './issue-event.entity';
 
 // DB에서 읽은 닫힌 이슈 행
@@ -115,5 +115,25 @@ describe('도메인 이슈 이력 모양', () => {
 
     // Then
     expect(attempt).toThrow('issue_events.payload 형식이 잘못됨: id=9');
+  });
+});
+
+describe('이슈 UPDATE 칸', () => {
+  test('DB에서 다시 읽었을 때 같은 순간이 되도록 닫힌 이슈의 시각을 저장 형식의 ISO 글자로 바꾼다', () => {
+    // Given: DB 행을 도메인으로 읽은 닫힌 이슈
+    const issue = toIssueModel(CLOSED_ENTITY);
+
+    // When
+    const update = toIssueEntityUpdate(issue);
+
+    // Then: 바뀌지 않는 칸은 빠지고 시각은 읽기 전과 같은 글자임
+    expect(update).toEqual({
+      title: '읽은 책 별점 입력',
+      due: '2026-11-30',
+      status: 'DONE',
+      statusChangedAt: '2026-11-22T09:05:00.000Z',
+      version: 4,
+      closedAt: '2026-11-22T09:05:00.000Z',
+    });
   });
 });

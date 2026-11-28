@@ -5,7 +5,7 @@ import { parseStoredInstant } from '@/database/utils/parse-stored-instant';
 import { tryParseJson } from '@/database/utils/try-parse-json';
 
 import type { IssueEntity } from './issue.entity';
-import type { Issue, IssueEvent } from './issue.model';
+import type { Issue, IssueEvent, NewStatusEvent } from './issue.model';
 import type { IssueEventEntity } from './issue-event.entity';
 
 // 상태 변경 이력의 payload 모양 (이전 상태와 새 상태)
@@ -86,4 +86,49 @@ export function toIssueEventModel(entity: IssueEventEntity): IssueEvent {
   }
 
   return { ...base, kind: entity.kind, from: payload.data.from, to: payload.data.to };
+}
+
+/**
+ * 도메인 이슈를 UPDATE에 넣을 엔티티 칸으로 바꾼다.
+ *
+ * - 만든 뒤 바뀌지 않는 칸(id, 프로젝트, 번호, 만든 시각)은 넣지 않는다
+ *
+ * @param issue 저장할 도메인 이슈
+ * @returns 바꿀 칸과 그 값
+ */
+export function toIssueEntityUpdate(
+  issue: Issue,
+): Pick<IssueEntity, 'title' | 'due' | 'status' | 'statusChangedAt' | 'version' | 'closedAt'> {
+  return {
+    title: issue.title,
+    due: issue.due,
+    status: issue.status,
+    statusChangedAt: issue.statusChangedAt.toISOString(),
+    version: issue.version,
+    closedAt: issue.closedAt?.toISOString() ?? null,
+  };
+}
+
+/**
+ * 저장 전의 상태 변경 이력을 INSERT에 넣을 엔티티 칸으로 바꾼다.
+ *
+ * - 이전 상태와 새 상태는 payload에 JSON 글자로 담는다
+ *
+ * @param params.issueId 이력을 남길 이슈 id
+ * @param params.event 저장 전의 상태 변경 이력
+ * @returns 넣을 칸과 그 값
+ */
+export function toStatusEventEntity({
+  issueId,
+  event,
+}: {
+  issueId: number;
+  event: NewStatusEvent;
+}): Omit<IssueEventEntity, 'id'> {
+  return {
+    issueId,
+    at: event.at.toISOString(),
+    kind: 'STATUS',
+    payload: JSON.stringify({ from: event.from, to: event.to }),
+  };
 }

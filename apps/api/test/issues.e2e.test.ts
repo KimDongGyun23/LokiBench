@@ -39,6 +39,44 @@ async function readCounter(): Promise<unknown> {
   return rows[0]?.value;
 }
 
+// 이슈를 고치는 요청을 보냄
+function patchIssue(id: number, body: Record<string, unknown>) {
+  return request(server).patch(`/api/issues/${id}`).send(body);
+}
+
+// 이슈를 고치고 계약 모양인지 확인한 이슈를 돌려줌
+async function changeIssue(id: number, body: Record<string, unknown>) {
+  const response = await patchIssue(id, body);
+  expect(response.status).toBe(200);
+  return issueSchema.parse(response.body);
+}
+
+// 이슈 이력의 종류를 오래된 순서로 읽음
+async function readEventKinds(issueId: number): Promise<unknown> {
+  const rows: { kind: string }[] = await dataSource.query(
+    `SELECT kind FROM issue_events WHERE issue_id = ? ORDER BY id`,
+    [issueId],
+  );
+  return rows.map((row) => row.kind);
+}
+
+// 되돌리기가 기대는 불변식: 상태를 바꾼 시각은 늘 마지막 이력의 시각과 같음
+async function expectStatusClockInSync(issueId: number): Promise<void> {
+  const rows: { statusChangedAt: string; lastEventAt: string }[] = await dataSource.query(
+    `SELECT i.status_changed_at AS statusChangedAt,
+            (SELECT at FROM issue_events WHERE issue_id = i.id ORDER BY id DESC LIMIT 1) AS lastEventAt
+     FROM issues i WHERE i.id = ?`,
+    [issueId],
+  );
+  expect(rows[0]?.statusChangedAt).toBe(rows[0]?.lastEventAt);
+}
+
+// 새 이슈를 만들어 닫은 이슈를 돌려줌
+async function addClosedIssue(projectId: number) {
+  const issue = await addIssue(projectId, '영수증 정리');
+  return changeIssue(issue.id, { version: issue.version, status: 'DONE' });
+}
+
 describe('이슈 만들기', () => {
   test('입력 실수를 허용하기 위해 앞뒤 공백을 지운 제목으로 저장하고 번호 1의 TODO 이슈로 시작한다', async () => {
     // Given
@@ -241,5 +279,185 @@ describe('이슈 조회', () => {
     // Then
     expect(response.status).toBe(400);
     expect(errorResponseSchema.parse(response.body).code).toBe('VALIDATION');
+  });
+});
+
+describe('이슈 수정', () => {
+  test('상태 이동을 기록하도록 상태를 바꾸면 version을 올리고 상태 변경 이력을 한 줄 남긴다', async () => {
+    // Given
+    const project = await addProject('가계부');
+    const issue = await addIssue(project.id, '영수증 정리');
+
+    // When
+    const changed = await changeIssue(issue.id, { version: 1, status: 'IN_PROGRESS' });
+
+    // Then
+    expect(changed).toMatchObject({ status: 'IN_PROGRESS', version: 2 });
+    expect(await readEventKinds(issue.id)).toEqual(['CREATED', 'STATUS']);
+    await expectStatusClockInSync(issue.id);
+  });
+
+  test('다른 곳의 수정을 덮어쓰지 않도록 낡은 version이면 ISSUE_VERSION_CONFLICT를 주고 아무것도 바꾸지 않는다', async () => {
+    // Given: 이미 한 번 고친 이슈
+    const project = await addProject('가계부');
+    const issue = await addIssue(project.id, '영수증 정리');
+    const changed = await changeIssue(issue.id, { version: 1, status: 'IN_PROGRESS' });
+
+    // When: 고치기 전의 version으로 다시 보냄
+    const response = await patchIssue(issue.id, { version: 1, status: 'IN_REVIEW' });
+
+    // Then
+    expect(response.status).toBe(409);
+    expect(errorResponseSchema.parse(response.body).code).toBe('ISSUE_VERSION_CONFLICT');
+    const stored = await request(server).get(`/api/issues/${issue.id}`);
+    expect(issueSchema.parse(stored.body)).toEqual(changed);
+    expect(await readEventKinds(issue.id)).toEqual(['CREATED', 'STATUS']);
+  });
+
+  test('두 탭의 수정이 함께 들어와도 하나만 반영되도록 같은 version의 두 요청 중 하나는 409를 준다', async () => {
+    // Given
+    const project = await addProject('가계부');
+    const issue = await addIssue(project.id, '영수증 정리');
+
+    // When
+    const responses = await Promise.all([
+      patchIssue(issue.id, { version: 1, status: 'IN_PROGRESS' }),
+      patchIssue(issue.id, { version: 1, status: 'IN_REVIEW' }),
+    ]);
+
+    // Then
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
+    expect(await readEventKinds(issue.id)).toEqual(['CREATED', 'STATUS']);
+  });
+
+  test('마감을 지울 수 있도록 마감에 null을 보내면 마감을 비운다', async () => {
+    // Given: 마감 있는 이슈
+    const project = await addProject('가계부');
+    const response = await request(server)
+      .post('/api/issues')
+      .send({ projectId: project.id, title: '영수증 정리', due: '2026-11-30' });
+    const issue = issueSchema.parse(response.body);
+
+    // When
+    const changed = await changeIssue(issue.id, { version: 1, due: null });
+
+    // Then: 제목, 마감만 바뀌면 이력은 늘지 않음
+    expect(changed).toMatchObject({ due: null, version: 2 });
+    expect(await readEventKinds(issue.id)).toEqual(['CREATED']);
+  });
+
+  test.each([
+    ['마감 없는 이슈의 마감을 비우는 요청은', { due: null }],
+    ['앞뒤 공백만 다른 같은 제목은', { title: '  영수증 정리  ' }],
+    ['지금과 같은 상태는', { status: 'TODO' }],
+  ])(
+    '바뀐 것이 없으면 다른 탭을 막지 않도록 %s 200을 주고 version을 올리지 않는다',
+    async (_, body) => {
+      // Given
+      const project = await addProject('가계부');
+      const issue = await addIssue(project.id, '영수증 정리');
+
+      // When
+      const changed = await changeIssue(issue.id, { version: 1, ...body });
+
+      // Then
+      expect(changed).toEqual(issue);
+      expect(await readEventKinds(issue.id)).toEqual(['CREATED']);
+    },
+  );
+
+  test('닫힌 이슈는 TODO로만 다시 열 수 있도록 다른 열린 상태로 옮기면 ISSUE_TRANSITION_NOT_ALLOWED를 준다', async () => {
+    // Given
+    const project = await addProject('가계부');
+    const closed = await addClosedIssue(project.id);
+
+    // When
+    const response = await patchIssue(closed.id, { version: closed.version, status: 'IN_REVIEW' });
+
+    // Then
+    expect(response.status).toBe(409);
+    expect(errorResponseSchema.parse(response.body).code).toBe('ISSUE_TRANSITION_NOT_ALLOWED');
+  });
+
+  test('다시 연 이슈가 닫힌 것으로 남지 않도록 닫힌 이슈를 TODO로 열면 닫은 시각을 비운다', async () => {
+    // Given
+    const project = await addProject('가계부');
+    const closed = await addClosedIssue(project.id);
+    expect(closed.closedAt).not.toBeNull();
+
+    // When
+    const reopened = await changeIssue(closed.id, { version: closed.version, status: 'TODO' });
+
+    // Then
+    expect(reopened).toMatchObject({ status: 'TODO', closedAt: null });
+    await expectStatusClockInSync(closed.id);
+  });
+
+  test('닫힌 이슈의 내용이 바뀌지 않도록 다른 제목을 보내면 ISSUE_CLOSED를 준다', async () => {
+    // Given
+    const project = await addProject('가계부');
+    const closed = await addClosedIssue(project.id);
+
+    // When
+    const response = await patchIssue(closed.id, { version: closed.version, title: '새 제목' });
+
+    // Then
+    expect(response.status).toBe(409);
+    expect(errorResponseSchema.parse(response.body).code).toBe('ISSUE_CLOSED');
+  });
+
+  test('낡은 화면이면 다시 불러오기부터 안내하도록 낡은 version의 닫힌 이슈 제목 수정은 ISSUE_VERSION_CONFLICT를 먼저 준다', async () => {
+    // Given
+    const project = await addProject('가계부');
+    const closed = await addClosedIssue(project.id);
+
+    // When
+    const response = await patchIssue(closed.id, { version: 1, title: '새 제목' });
+
+    // Then
+    expect(response.status).toBe(409);
+    expect(errorResponseSchema.parse(response.body).code).toBe('ISSUE_VERSION_CONFLICT');
+  });
+
+  test('없는 이슈를 화면이 구분하도록 없는 id를 고치면 ISSUE_NOT_FOUND를 준다', async () => {
+    // When
+    const response = await patchIssue(999, { version: 1, title: '새 제목' });
+
+    // Then
+    expect(response.status).toBe(404);
+    expect(errorResponseSchema.parse(response.body).code).toBe('ISSUE_NOT_FOUND');
+  });
+
+  test.each([
+    ['version만 담은 요청은', { version: 1 }],
+    ['서버가 정하는 번호만 담은 요청은', { version: 1, number: 99 }],
+  ])('바꿀 칸이 없는 요청을 막도록 %s VALIDATION을 준다', async (_, body) => {
+    // Given
+    const project = await addProject('가계부');
+    const issue = await addIssue(project.id, '영수증 정리');
+
+    // When
+    const response = await patchIssue(issue.id, body);
+
+    // Then
+    expect(response.status).toBe(400);
+    expect(errorResponseSchema.parse(response.body).code).toBe('VALIDATION');
+  });
+
+  test('이슈가 다른 프로젝트로 옮겨지지 않도록 수정 요청에 담긴 projectId는 무시한다', async () => {
+    // Given
+    const books = await addProject('독서 기록');
+    const budget = await addProject('가계부');
+    const issue = await addIssue(books.id, '읽은 책 별점 입력');
+
+    // When
+    const changed = await changeIssue(issue.id, {
+      version: 1,
+      title: '새 제목',
+      projectId: budget.id,
+    });
+
+    // Then
+    expect(changed).toMatchObject({ title: '새 제목', projectId: books.id });
   });
 });

@@ -3,11 +3,12 @@ import { Injectable } from '@nestjs/common';
 import { DomainError } from '@/errors/domain-error';
 import { ProjectRepository } from '@/modules/projects/project.repository';
 
-import type { CreateIssueCommand, Issue } from './issue.model';
+import type { CreateIssueCommand, Issue, UpdateIssueCommand } from './issue.model';
 import { IssueRepository } from './issue.repository';
+import { applyIssueUpdate } from './issue.rules';
 
 /**
- * 이슈 만들기와 조회를 처리한다.
+ * 이슈 만들기, 조회, 수정을 처리한다.
  */
 @Injectable()
 export class IssuesService {
@@ -48,6 +49,41 @@ export class IssuesService {
     if (!issue) throw new DomainError('ISSUE_NOT_FOUND');
 
     return issue;
+  }
+
+  /**
+   * 이슈의 제목, 마감, 상태를 바꾼다.
+   *
+   * - 낡은 화면이면 규칙 위반보다 다시 불러오기를 먼저 안내하도록 version부터 비교한다
+   * - 바뀐 것이 없으면 아무것도 적지 않고 지금 이슈를 그대로 준다
+   *
+   * @param id 바꿀 이슈 id
+   * @param command 화면이 본 version과 바꿀 칸
+   * @returns 바뀐 이슈 (바뀐 것이 없으면 지금 이슈)
+   * @throws {DomainError} ISSUE_NOT_FOUND, ISSUE_VERSION_CONFLICT, ISSUE_CLOSED, ISSUE_TRANSITION_NOT_ALLOWED
+   */
+  async update(id: number, command: UpdateIssueCommand): Promise<Issue> {
+    const { version, ...changes } = command;
+    const issue = await this.get(id);
+
+    // 화면이 본 뒤 다른 곳에서 먼저 고쳤음
+    if (issue.version !== version) throw new DomainError('ISSUE_VERSION_CONFLICT');
+
+    const result = applyIssueUpdate(issue, changes, new Date());
+
+    // 바뀐 것이 없으면 version을 올리지 않음
+    if (result.kind === 'unchanged') return issue;
+
+    const saved = await this.repository.saveChange({
+      issue: result.issue,
+      expectedVersion: issue.version,
+      event: result.event,
+    });
+
+    // 조회와 저장 사이에 다른 수정이 먼저 저장됨
+    if (!saved) throw new DomainError('ISSUE_VERSION_CONFLICT');
+
+    return saved;
   }
 
   /**

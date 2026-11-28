@@ -81,3 +81,8 @@ export interface CreateIssueCommand {
   title: string;
   due?: string | null;
 }
+
+// controller가 service에 이슈 수정을 요청할 때 넘기는 값 (version은 화면이 본 이슈의 version)
+export interface UpdateIssueCommand extends IssueChanges {
+  version: number;
+}

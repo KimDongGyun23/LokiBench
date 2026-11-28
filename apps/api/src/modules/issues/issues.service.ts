@@ -5,10 +5,10 @@ import { ProjectRepository } from '@/modules/projects/project.repository';
 
 import type { CreateIssueCommand, Issue, UpdateIssueCommand } from './issue.model';
 import { IssueRepository } from './issue.repository';
-import { applyIssueUpdate } from './issue.rules';
+import { applyIssueUpdate, undoIssueStatus } from './issue.rules';
 
 /**
- * 이슈 만들기, 조회, 수정을 처리한다.
+ * 이슈 만들기, 조회, 수정, 상태 되돌리기를 처리한다.
  */
 @Injectable()
 export class IssuesService {
@@ -79,6 +79,34 @@ export class IssuesService {
       expectedVersion: issue.version,
       event: result.event,
     });
+
+    // 조회와 저장 사이에 다른 수정이 먼저 저장됨
+    if (!saved) throw new DomainError('ISSUE_VERSION_CONFLICT');
+
+    return saved;
+  }
+
+  /**
+   * 이슈의 마지막 상태 변경을 되돌린다.
+   *
+   * - 낡은 화면이면 되돌릴 수 있는지 따지기 전에 다시 불러오기를 먼저 안내하도록 version부터 비교한다
+   *
+   * @param id 되돌릴 이슈 id
+   * @param version 화면이 본 이슈의 version
+   * @returns 되돌린 이슈
+   * @throws {DomainError} ISSUE_NOT_FOUND, ISSUE_VERSION_CONFLICT, ISSUE_UNDO_NOTHING, ISSUE_UNDO_EXPIRED
+   */
+  async undoStatus(id: number, version: number): Promise<Issue> {
+    const issue = await this.get(id);
+
+    // 화면이 본 뒤 다른 곳에서 먼저 고쳤음
+    if (issue.version !== version) throw new DomainError('ISSUE_VERSION_CONFLICT');
+
+    // 되돌릴 이력과 그 앞 이력만 있으면 이전 상태와 시각을 정할 수 있음
+    const events = await this.repository.findLastEvents(id, 2);
+    const result = undoIssueStatus(issue, events, new Date());
+
+    const saved = await this.repository.saveUndo({ ...result, expectedVersion: issue.version });
 
     // 조회와 저장 사이에 다른 수정이 먼저 저장됨
     if (!saved) throw new DomainError('ISSUE_VERSION_CONFLICT');

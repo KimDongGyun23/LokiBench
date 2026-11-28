@@ -1,4 +1,10 @@
-import type { CreateMilestoneInput, Milestone, MilestoneFields } from './milestone.model';
+import type {
+  CloseMilestoneInput,
+  CreateMilestoneInput,
+  DeleteMilestoneInput,
+  Milestone,
+  UpdateMilestoneInput,
+} from './milestone.model';
 
 /**
  * 마일스톤 repository의 약속이다.
@@ -16,16 +22,16 @@ export abstract class MilestoneRepository {
   abstract findByProject(projectId: number): Promise<Milestone[]>;
 
   // 없으면 null, 같은 프로젝트에 같은 제목이 있으면 DomainError(MILESTONE_TITLE_TAKEN)
-  abstract update(params: { id: number; fields: MilestoneFields }): Promise<Milestone | null>;
+  abstract update(input: UpdateMilestoneInput): Promise<Milestone | null>;
 
   // 열린 이슈가 있으면 DomainError(MILESTONE_HAS_OPEN_ISSUES), 이미 닫혔으면 그대로 줌
-  abstract close(params: { id: number; now: Date }): Promise<Milestone | null>;
+  abstract close(input: CloseMilestoneInput): Promise<Milestone | null>;
 
   // 이미 열렸으면 그대로 줌
   abstract reopen(id: number): Promise<Milestone | null>;
 
   // 이슈가 있으면 DomainError(MILESTONE_HAS_ISSUES), 없는 마일스톤이면 false
-  abstract softDelete(params: { id: number; now: Date }): Promise<boolean>;
+  abstract softDelete(input: DeleteMilestoneInput): Promise<boolean>;
 
   // 지우지 않은 것이면 그대로, 없는 id면 null, 그 사이 같은 제목이 생겼으면 DomainError(MILESTONE_TITLE_TAKEN)
   abstract restore(id: number): Promise<Milestone | null>;

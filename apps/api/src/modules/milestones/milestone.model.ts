@@ -34,6 +34,24 @@ export interface CreateMilestoneInput extends MilestoneFields {
   now: Date;
 }
 
+// service가 repository에 마일스톤 수정을 저장할 때 넘기는 값 (칸 전부)
+export interface UpdateMilestoneInput {
+  id: number;
+  fields: MilestoneFields;
+}
+
+// service가 repository에 마일스톤을 닫으라고 할 때 넘기는 값 (now가 닫은 시각)
+export interface CloseMilestoneInput {
+  id: number;
+  now: Date;
+}
+
+// service가 repository에 마일스톤을 지우라고 할 때 넘기는 값 (now가 지운 시각)
+export interface DeleteMilestoneInput {
+  id: number;
+  now: Date;
+}
+
 // 이슈 repository가 쓰기 트랜잭션 안에서 읽는 마일스톤 상태
 export interface MilestoneGuard {
   projectId: number;

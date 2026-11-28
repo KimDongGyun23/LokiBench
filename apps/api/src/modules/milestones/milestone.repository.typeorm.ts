@@ -9,13 +9,31 @@ import { readMilestoneIssueSummary } from '@/modules/issues/issue.reader';
 
 import { MilestoneEntity } from './milestone.entity';
 import { toMilestoneModel } from './milestone.mapper';
-import type { CreateMilestoneInput, Milestone, MilestoneFields } from './milestone.model';
+import type {
+  CloseMilestoneInput,
+  CreateMilestoneInput,
+  DeleteMilestoneInput,
+  Milestone,
+  UpdateMilestoneInput,
+} from './milestone.model';
 import { MilestoneRepository } from './milestone.repository';
 import {
   assertCanCloseMilestone,
   assertCanDeleteMilestone,
   sortMilestones,
 } from './milestone.rules';
+
+// 지우지 않은 마일스톤 하나를 찾을 때 넘기는 값
+interface FindActiveParams {
+  manager: EntityManager;
+  id: number;
+}
+
+// 마일스톤 행을 저장할 때 넘기는 값
+interface SaveMilestoneParams {
+  manager: EntityManager;
+  entity: MilestoneEntity;
+}
 
 /**
  * sqlite에 마일스톤을 읽고 쓰는 repository 구현체다.
@@ -59,7 +77,7 @@ export class TypeOrmMilestoneRepository extends MilestoneRepository {
     return sortMilestones(entities.map(toMilestoneModel));
   }
 
-  async update({ id, fields }: { id: number; fields: MilestoneFields }): Promise<Milestone | null> {
+  async update({ id, fields }: UpdateMilestoneInput): Promise<Milestone | null> {
     const updateMilestone = async (manager: EntityManager): Promise<Milestone | null> => {
       const entity = await this.findActive({ manager, id });
       if (!entity) return null;
@@ -72,7 +90,7 @@ export class TypeOrmMilestoneRepository extends MilestoneRepository {
     return this.write(updateMilestone);
   }
 
-  async close({ id, now }: { id: number; now: Date }): Promise<Milestone | null> {
+  async close({ id, now }: CloseMilestoneInput): Promise<Milestone | null> {
     const closeMilestone = async (manager: EntityManager): Promise<Milestone | null> => {
       const entity = await this.findActive({ manager, id });
       if (!entity) return null;
@@ -103,7 +121,7 @@ export class TypeOrmMilestoneRepository extends MilestoneRepository {
     return this.write(reopenMilestone);
   }
 
-  async softDelete({ id, now }: { id: number; now: Date }): Promise<boolean> {
+  async softDelete({ id, now }: DeleteMilestoneInput): Promise<boolean> {
     const deleteMilestone = async (manager: EntityManager): Promise<boolean> => {
       const entity = await this.findActive({ manager, id });
       if (!entity) return false;
@@ -133,24 +151,12 @@ export class TypeOrmMilestoneRepository extends MilestoneRepository {
   }
 
   // 지우지 않은 마일스톤 하나를 찾음 (지운 것을 거르는 유일한 곳)
-  private findActive({
-    manager,
-    id,
-  }: {
-    manager: EntityManager;
-    id: number;
-  }): Promise<MilestoneEntity | null> {
+  private findActive({ manager, id }: FindActiveParams): Promise<MilestoneEntity | null> {
     return manager.findOneBy(MilestoneEntity, { id, deletedAt: IsNull() });
   }
 
   // 저장하다 제목 유일 제약에 걸리면 도메인 오류로 바꿈
-  private async saveOrThrowTitleTaken({
-    manager,
-    entity,
-  }: {
-    manager: EntityManager;
-    entity: MilestoneEntity;
-  }): Promise<void> {
+  private async saveOrThrowTitleTaken({ manager, entity }: SaveMilestoneParams): Promise<void> {
     try {
       await manager.save(entity);
     } catch (error) {

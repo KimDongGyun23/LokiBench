@@ -22,6 +22,7 @@ import {
 
 interface ProjectEditRowProps {
   project: Project;
+  openIssueCount: number | undefined;
   color: ProjectColor;
   onColorChange: (color: ProjectColor) => void;
   onEditEnd: () => void;
@@ -38,11 +39,18 @@ interface ProjectEditRowProps {
  * - 닫으면 입력한 글자와 오류가 함께 사라지도록, 고치는 동안에만 그린다
  *
  * @param props.project 이름을 고칠 프로젝트
+ * @param props.openIssueCount 열린 이슈 수 (비어 있으면 칸을 비움)
  * @param props.color 지금 보여 줄 색
  * @param props.onColorChange 다른 색을 눌렀을 때 그 색을 받는 함수
  * @param props.onEditEnd 저장에 성공했거나 취소했을 때 부르는 함수
  */
-export function ProjectEditRow({ project, color, onColorChange, onEditEnd }: ProjectEditRowProps) {
+export function ProjectEditRow({
+  project,
+  openIssueCount,
+  color,
+  onColorChange,
+  onEditEnd,
+}: ProjectEditRowProps) {
   const formId = useId();
   const errorId = useId();
   const { mutate: rename, isPending: isRenamePending } = useMutation(projectMutations.rename());
@@ -126,6 +134,9 @@ export function ProjectEditRow({ project, color, onColorChange, onEditEnd }: Pro
             onChange={onColorChange}
           />
         </div>
+      </td>
+      <td className="px-2.5 py-3 align-top">
+        <div className="text-muted-fg flex h-7 items-center">{openIssueCount}</div>
       </td>
       <td className="py-3 pr-5 align-top">
         <div className="flex justify-end gap-1.5">

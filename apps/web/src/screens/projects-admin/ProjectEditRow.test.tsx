@@ -2,11 +2,12 @@ import { type Project, updateProjectRequestSchema } from '@lokibench/shared/cont
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { delay, http, HttpResponse } from 'msw';
+import { http, HttpResponse } from 'msw';
 import { toast } from 'sonner';
 
 import { Toaster } from '@/components/Toaster';
 import { createQueryClient } from '@/lib/query-client';
+import { createResponseGate, type ResponseGate } from '@/test/response-gate';
 import { server } from '@/test/server';
 
 import { ProjectEditRow } from './ProjectEditRow';
@@ -26,14 +27,17 @@ afterEach(() => {
 });
 
 // 이름 변경 요청에 서버가 어떻게 답할지
-type RenameResponsePlan = 'slowSuccess' | 'nameTaken' | 'failure';
+type RenameResponsePlan = 'success' | 'nameTaken' | 'failure';
 
 /**
  * 가계부의 이름 변경 요청에 정한 대로 답하게 한다.
  *
- * @param plan 늦은 성공, 같은 이름 거절, 그 밖의 실패 중 하나
+ * - 문을 넘기면 성공 응답을 테스트가 풀 때까지 붙잡아 둔다
+ *
+ * @param plan 성공, 같은 이름 거절, 그 밖의 실패 중 하나
+ * @param gate 성공 응답을 붙잡아 둘 문
  */
-function respondToRename(plan: RenameResponsePlan) {
+function respondToRename(plan: RenameResponsePlan, gate?: ResponseGate) {
   server.use(
     http.get('/api/projects', () => HttpResponse.json([BUDGET])),
     http.patch('/api/projects/2', async ({ request }) => {
@@ -44,7 +48,7 @@ function respondToRename(plan: RenameResponsePlan) {
         return HttpResponse.json({ code: 'INTERNAL', message: 'boom' }, { status: 500 });
       }
 
-      await delay(200);
+      await gate?.wait();
       const { name } = updateProjectRequestSchema.parse(await request.json());
 
       return HttpResponse.json({ ...BUDGET, name });
@@ -64,6 +68,7 @@ function renderProjectEditRow() {
         <tbody>
           <ProjectEditRow
             project={BUDGET}
+            openIssueCount={undefined}
             color={BUDGET.color}
             onColorChange={() => undefined}
             onEditEnd={() => undefined}
@@ -88,9 +93,10 @@ describe('프로젝트 이름 고치는 행', () => {
   });
 
   test('같은 저장이 두 번 나가지 않게 하기 위해 저장하는 중에는 저장 버튼과 입력을 막는다', async () => {
-    // Given: 저장 응답이 늦게 옴
+    // Given: 저장 응답을 붙잡아 둠
     const user = userEvent.setup();
-    respondToRename('slowSuccess');
+    const gate = createResponseGate();
+    respondToRename('success', gate);
     const input = renderProjectEditRow();
     await user.clear(input);
 
@@ -102,12 +108,14 @@ describe('프로젝트 이름 고치는 행', () => {
       expect(screen.getByRole('button', { name: '저장' })).toBeDisabled();
     });
     expect(input).toHaveAttribute('readonly');
+    gate.release();
   });
 
   test('취소했는데 이름이 바뀌는 일이 없게 하기 위해 저장하는 중에는 취소 버튼을 막는다', async () => {
-    // Given: 저장 응답이 늦게 옴
+    // Given: 저장 응답을 붙잡아 둠
     const user = userEvent.setup();
-    respondToRename('slowSuccess');
+    const gate = createResponseGate();
+    respondToRename('success', gate);
     const input = renderProjectEditRow();
     await user.clear(input);
 
@@ -118,6 +126,7 @@ describe('프로젝트 이름 고치는 행', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: '취소' })).toBeDisabled();
     });
+    gate.release();
   });
 
   test('이름 없는 프로젝트가 생기지 않게 하기 위해 이름을 비우고 저장하면 입력칸 아래에 오류를 보인다', async () => {

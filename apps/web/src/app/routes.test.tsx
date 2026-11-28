@@ -1,9 +1,10 @@
 import type { Project } from '@lokibench/shared/contracts';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { delay, http, HttpResponse } from 'msw';
+import { http, HttpResponse } from 'msw';
 
 import { renderApp } from '@/test/render';
+import { createResponseGate } from '@/test/response-gate';
 import { server } from '@/test/server';
 
 const PROJECTS: Project[] = [
@@ -71,10 +72,11 @@ describe('사이드바', () => {
   });
 
   test('멈춘 것으로 오해하지 않도록 프로젝트 목록을 받는 동안 불러오는 중임을 보인다', async () => {
-    // Given
+    // Given: 목록 응답을 붙잡아 둠
+    const gate = createResponseGate();
     server.use(
       http.get('/api/projects', async () => {
-        await delay(50);
+        await gate.wait();
         return HttpResponse.json(PROJECTS);
       }),
     );
@@ -84,6 +86,7 @@ describe('사이드바', () => {
 
     // Then
     expect(screen.getByRole('status', { name: '프로젝트 목록 불러오는 중' })).toBeInTheDocument();
+    gate.release();
     expect(await screen.findByRole('link', { name: '가계부' })).toBeInTheDocument();
     expect(screen.queryByRole('status', { name: '프로젝트 목록 불러오는 중' })).toBeNull();
   });
@@ -94,9 +97,10 @@ describe('사이드바', () => {
     server.use(http.get('/api/projects', () => HttpResponse.error()));
     renderApp({ route: '/dashboard' });
     const retryButton = await screen.findByRole('button', { name: '다시 시도' });
+    const gate = createResponseGate();
     server.use(
       http.get('/api/projects', async () => {
-        await delay(50);
+        await gate.wait();
         return HttpResponse.json(PROJECTS);
       }),
     );
@@ -106,6 +110,7 @@ describe('사이드바', () => {
 
     // Then
     expect(screen.getByRole('status', { name: '프로젝트 목록 불러오는 중' })).toBeInTheDocument();
+    gate.release();
     expect(await screen.findByRole('link', { name: '가계부' })).toBeInTheDocument();
     expect(screen.queryByText('불러오지 못함')).toBeNull();
   });
@@ -165,10 +170,11 @@ describe('경로', () => {
   });
 
   test('멈춘 것으로 오해하지 않도록 프로젝트 화면은 목록을 받는 동안 불러오는 중임을 보인다', async () => {
-    // Given
+    // Given: 목록 응답을 붙잡아 둠
+    const gate = createResponseGate();
     server.use(
       http.get('/api/projects', async () => {
-        await delay(50);
+        await gate.wait();
         return HttpResponse.json(PROJECTS);
       }),
     );
@@ -178,6 +184,7 @@ describe('경로', () => {
 
     // Then
     expect(await screen.findByRole('status', { name: '프로젝트 불러오는 중' })).toBeInTheDocument();
+    gate.release();
     expect(await screen.findByRole('heading', { name: '가계부' })).toBeInTheDocument();
     expect(screen.queryByRole('status', { name: '프로젝트 불러오는 중' })).toBeNull();
   });

@@ -8,6 +8,7 @@ import { ColorPicker } from './ColorPicker';
 
 interface ProjectViewRowProps {
   project: Project;
+  openIssueCount: number | undefined;
   color: ProjectColor;
   onColorChange: (color: ProjectColor) => void;
   canEdit: boolean;
@@ -21,6 +22,7 @@ interface ProjectViewRowProps {
  * - 수정 버튼은 행마다 글자가 같아서, 스크린 리더에는 프로젝트 이름을 붙여 읽힌다
  *
  * @param props.project 그릴 프로젝트
+ * @param props.openIssueCount 열린 이슈 수 (비어 있으면 칸을 비움)
  * @param props.color 지금 보여 줄 색
  * @param props.onColorChange 다른 색을 눌렀을 때 그 색을 받는 함수
  * @param props.canEdit 지금 수정을 누를 수 있는지
@@ -28,6 +30,7 @@ interface ProjectViewRowProps {
  */
 export function ProjectViewRow({
   project,
+  openIssueCount,
   color,
   onColorChange,
   canEdit,
@@ -55,6 +58,9 @@ export function ProjectViewRow({
             onChange={onColorChange}
           />
         </div>
+      </td>
+      <td className="px-2.5 py-3 align-top">
+        <div className="text-muted-fg flex h-7 items-center">{openIssueCount}</div>
       </td>
       <td className="py-3 pr-5 align-top">
         <div className="flex justify-end">

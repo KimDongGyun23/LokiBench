@@ -1,10 +1,11 @@
 import { type Project, updateProjectRequestSchema } from '@lokibench/shared/contracts';
 import { QueryClientProvider, useMutation, useQuery } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { delay, http, HttpResponse } from 'msw';
+import { http, HttpResponse } from 'msw';
 import type { ReactNode } from 'react';
 
 import { createQueryClient } from '@/lib/query-client';
+import { createResponseGate, type ResponseGate } from '@/test/response-gate';
 import { server } from '@/test/server';
 
 import type { ProjectColor } from './colors.constant';
@@ -34,11 +35,14 @@ const BLOG: Project = {
 let listRequestCount = 0;
 // 서버가 들고 있는 프로젝트 목록
 let serverProjects: Project[] = [];
+// 서버가 색 변경에 응답한 순서
+let answeredColors: ProjectColor[] = [];
 
 beforeEach(() => {
   // Given: 서버에 프로젝트가 2개 있음
   listRequestCount = 0;
   serverProjects = [READING, BUDGET];
+  answeredColors = [];
   server.use(
     http.get('/api/projects', () => {
       listRequestCount += 1;
@@ -50,13 +54,15 @@ beforeEach(() => {
 /**
  * 블로그 추가 요청을 서버에 저장하고 성공으로 답하게 한다.
  *
- * @param delayMs 저장한 뒤 응답을 보내기까지 걸릴 시간
+ * - 문을 넘기면 저장한 뒤 응답을 테스트가 풀 때까지 붙잡아 둔다
+ *
+ * @param gate 저장한 뒤 응답을 붙잡아 둘 문
  */
-function respondToCreate(delayMs: number) {
+function respondToCreate(gate?: ResponseGate) {
   server.use(
     http.post('/api/projects', async () => {
       serverProjects = [...serverProjects, BLOG];
-      await delay(delayMs);
+      await gate?.wait();
 
       return HttpResponse.json(BLOG, { status: 201 });
     }),
@@ -65,7 +71,7 @@ function respondToCreate(delayMs: number) {
 
 // 색 변경 요청 하나에 서버가 어떻게 답할지
 interface ColorResponsePlan {
-  delayMs: number;
+  gate?: ResponseGate;
   isFailure: boolean;
 }
 
@@ -73,8 +79,10 @@ interface ColorResponsePlan {
  * 가계부의 색 변경 요청에 색마다 정한 대로 답하게 한다.
  *
  * - 성공으로 답하면 서버가 들고 있는 색도 바꾼다
+ * - 문을 넘긴 색은 응답을 테스트가 풀 때까지 붙잡아 둔다
+ * - 응답을 보낸 색은 answeredColors에 차례대로 남긴다
  *
- * @param plans 요청한 색마다 걸릴 시간과 실패 여부
+ * @param plans 요청한 색마다 응답을 붙잡아 둘 문과 실패 여부
  */
 function respondToColorChange(plans: Partial<Record<ProjectColor, ColorResponsePlan>>) {
   server.use(
@@ -85,7 +93,8 @@ function respondToColorChange(plans: Partial<Record<ProjectColor, ColorResponseP
         return HttpResponse.json({ code: 'VALIDATION', message: 'unexpected' }, { status: 400 });
       }
 
-      await delay(plan.delayMs);
+      await plan.gate?.wait();
+      answeredColors.push(color);
       if (plan.isFailure) {
         return HttpResponse.json({ code: 'INTERNAL', message: 'boom' }, { status: 500 });
       }
@@ -146,7 +155,7 @@ async function renderProjectHooks() {
 describe('프로젝트 추가', () => {
   test('추가한 프로젝트가 목록에 보이도록 추가에 성공하면 목록을 다시 받는다', async () => {
     // Given
-    respondToCreate(0);
+    respondToCreate();
     const result = await renderProjectHooks();
 
     // When
@@ -182,8 +191,9 @@ describe('프로젝트 추가', () => {
   });
 
   test('같은 프로젝트가 두 줄로 보이지 않게 하기 위해 응답 전에 받은 목록에 이미 있어도 한 번만 보인다', async () => {
-    // Given: 서버에 저장된 뒤 추가 응답이 늦게 도착함
-    respondToCreate(100);
+    // Given: 서버에 저장한 뒤 추가 응답을 붙잡아 둠
+    const gate = createResponseGate();
+    respondToCreate(gate);
     const result = await renderProjectHooks();
 
     // When: 추가 응답이 오기 전에 목록을 다시 받음
@@ -194,6 +204,7 @@ describe('프로젝트 추가', () => {
       expect(serverProjects).toHaveLength(3);
     });
     await act(() => result.current.projects.refetch());
+    gate.release();
     await waitFor(() => {
       expect(result.current.createProject.isSuccess).toBe(true);
     });
@@ -206,7 +217,7 @@ describe('프로젝트 추가', () => {
 describe('프로젝트 색 변경', () => {
   test('저장된 색이 목록에 보이도록 색 변경에 성공하면 목록을 다시 받는다', async () => {
     // Given
-    respondToColorChange({ violet: { delayMs: 0, isFailure: false } });
+    respondToColorChange({ violet: { isFailure: false } });
     const result = await renderProjectHooks();
 
     // When
@@ -219,8 +230,9 @@ describe('프로젝트 색 변경', () => {
   });
 
   test('되돌릴 일을 만들지 않기 위해 응답을 받기 전에는 목록의 색을 바꾸지 않는다', async () => {
-    // Given
-    respondToColorChange({ violet: { delayMs: 50, isFailure: false } });
+    // Given: 응답을 붙잡아 둠
+    const gate = createResponseGate();
+    respondToColorChange({ violet: { gate, isFailure: false } });
     const result = await renderProjectHooks();
 
     // When
@@ -233,6 +245,7 @@ describe('프로젝트 색 변경', () => {
 
     // Then
     expect(result.current.projects.data).toEqual([READING, BUDGET]);
+    gate.release();
     await waitFor(() => {
       expect(result.current.changeColor.isSuccess).toBe(true);
     });
@@ -240,7 +253,7 @@ describe('프로젝트 색 변경', () => {
 
   test('저장되지 않은 색이 보이지 않게 하기 위해 색 변경이 실패하면 목록을 그대로 둔다', async () => {
     // Given
-    respondToColorChange({ violet: { delayMs: 0, isFailure: true } });
+    respondToColorChange({ violet: { isFailure: true } });
     const result = await renderProjectHooks();
 
     // When
@@ -257,20 +270,27 @@ describe('프로젝트 색 변경', () => {
   });
 
   test('뒤에 저장된 색이 지워지지 않게 하기 위해 앞선 색 변경이 실패해도 뒤에 성공한 색을 남긴다', async () => {
-    // Given: 먼저 누른 색은 실패하고, 뒤에 누른 색은 더 늦게 성공함
+    // Given: 먼저 누른 색은 실패하고, 뒤에 누른 색은 나중에 성공함
+    const violetGate = createResponseGate();
+    const roseGate = createResponseGate();
     respondToColorChange({
-      violet: { delayMs: 60, isFailure: true },
-      rose: { delayMs: 150, isFailure: false },
+      violet: { gate: violetGate, isFailure: true },
+      rose: { gate: roseGate, isFailure: false },
     });
     const result = await renderProjectHooks();
 
-    // When
+    // When: 둘 다 누른 뒤 먼저 누른 색의 응답부터 보냄
     act(() => {
       result.current.changeColor.mutate({ projectId: 2, color: 'violet' });
     });
     act(() => {
       result.current.changeColor.mutate({ projectId: 2, color: 'rose' });
     });
+    violetGate.release();
+    await waitFor(() => {
+      expect(answeredColors).toEqual(['violet']);
+    });
+    roseGate.release();
     await waitFor(() => {
       expect(result.current.changeColor.isSuccess).toBe(true);
     });
@@ -281,19 +301,26 @@ describe('프로젝트 색 변경', () => {
 
   test('저장되지 않은 색이 남지 않게 하기 위해 겹친 색 변경이 모두 실패하면 처음 색을 그대로 둔다', async () => {
     // Given
+    const violetGate = createResponseGate();
+    const roseGate = createResponseGate();
     respondToColorChange({
-      violet: { delayMs: 60, isFailure: true },
-      rose: { delayMs: 150, isFailure: true },
+      violet: { gate: violetGate, isFailure: true },
+      rose: { gate: roseGate, isFailure: true },
     });
     const result = await renderProjectHooks();
 
-    // When
+    // When: 둘 다 누른 뒤 먼저 누른 색의 응답부터 보냄
     act(() => {
       result.current.changeColor.mutate({ projectId: 2, color: 'violet' });
     });
     act(() => {
       result.current.changeColor.mutate({ projectId: 2, color: 'rose' });
     });
+    violetGate.release();
+    await waitFor(() => {
+      expect(answeredColors).toEqual(['violet']);
+    });
+    roseGate.release();
     await waitFor(() => {
       expect(result.current.changeColor.isError).toBe(true);
     });

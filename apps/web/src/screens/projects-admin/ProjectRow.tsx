@@ -10,6 +10,7 @@ import { ProjectViewRow } from './ProjectViewRow';
 
 interface ProjectRowProps {
   project: Project;
+  openIssueCount: number | undefined;
   isEditing: boolean;
   canEdit: boolean;
   onEditStart: () => void;
@@ -25,6 +26,7 @@ interface ProjectRowProps {
  * - 이름을 고치는 중인지는 표가 정해서, 한 번에 한 행만 고칠 수 있다
  *
  * @param props.project 그릴 프로젝트
+ * @param props.openIssueCount 열린 이슈 수 (받는 중이거나 받지 못했으면 undefined)
  * @param props.isEditing 이 행의 이름을 고치는 중인지
  * @param props.canEdit 지금 이 행의 수정을 누를 수 있는지
  * @param props.onEditStart 수정을 눌렀을 때 부르는 함수
@@ -32,6 +34,7 @@ interface ProjectRowProps {
  */
 export function ProjectRow({
   project,
+  openIssueCount,
   isEditing,
   canEdit,
   onEditStart,
@@ -57,6 +60,7 @@ export function ProjectRow({
     return (
       <ProjectEditRow
         project={project}
+        openIssueCount={openIssueCount}
         color={shownColor}
         onColorChange={handleColorChange}
         onEditEnd={onEditEnd}
@@ -67,6 +71,7 @@ export function ProjectRow({
   return (
     <ProjectViewRow
       project={project}
+      openIssueCount={openIssueCount}
       color={shownColor}
       onColorChange={handleColorChange}
       canEdit={canEdit}

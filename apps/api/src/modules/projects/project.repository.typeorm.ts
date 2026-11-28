@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 
 import { isUniqueViolation } from '@/database/utils/is-unique-violation';
+import { runExclusive } from '@/database/utils/run-exclusive';
 import { DomainError } from '@/errors/domain-error';
 
 import { ProjectEntity } from './project.entity';
@@ -12,6 +13,8 @@ import { ProjectRepository } from './project.repository';
 
 /**
  * sqlite에 프로젝트를 읽고 쓰는 repository 구현체다.
+ *
+ * - 읽기와 쓰기 모두 runExclusive로 같은 연결의 다른 작업이 끝난 뒤에 실행한다
  */
 @Injectable()
 export class TypeOrmProjectRepository extends ProjectRepository {
@@ -22,17 +25,19 @@ export class TypeOrmProjectRepository extends ProjectRepository {
   }
 
   async findAll(): Promise<Project[]> {
-    const entities = await this.repository.find({ order: { createdAt: 'ASC', id: 'ASC' } });
+    const entities = await this.run(() =>
+      this.repository.find({ order: { createdAt: 'ASC', id: 'ASC' } }),
+    );
     return entities.map(toProjectModel);
   }
 
   async findById(id: number): Promise<Project | null> {
-    const entity = await this.repository.findOneBy({ id });
+    const entity = await this.run(() => this.repository.findOneBy({ id }));
     return entity && toProjectModel(entity);
   }
 
   async findByName(name: string): Promise<Project | null> {
-    const entity = await this.repository.findOneBy({ name });
+    const entity = await this.run(() => this.repository.findOneBy({ name }));
     return entity && toProjectModel(entity);
   }
 
@@ -42,19 +47,28 @@ export class TypeOrmProjectRepository extends ProjectRepository {
       color: input.color,
       createdAt: new Date().toISOString(),
     });
-    await this.saveOrThrowNameTaken(entity);
+    await this.run(() => this.saveOrThrowNameTaken(entity));
     return toProjectModel(entity);
   }
 
   async update(id: number, changes: UpdateProjectInput): Promise<Project | null> {
-    const entity = await this.repository.findOneBy({ id });
-    if (!entity) return null;
+    const updateProject = async (): Promise<Project | null> => {
+      const entity = await this.repository.findOneBy({ id });
+      if (!entity) return null;
 
-    if (changes.name !== undefined) entity.name = changes.name;
-    if (changes.color !== undefined) entity.color = changes.color;
+      if (changes.name !== undefined) entity.name = changes.name;
+      if (changes.color !== undefined) entity.color = changes.color;
 
-    await this.saveOrThrowNameTaken(entity);
-    return toProjectModel(entity);
+      await this.saveOrThrowNameTaken(entity);
+      return toProjectModel(entity);
+    };
+
+    return this.run(updateProject);
+  }
+
+  // 작업을 같은 연결의 작업 줄 끝에 이어 붙임
+  private run<T>(work: () => Promise<T>): Promise<T> {
+    return runExclusive({ dataSource: this.repository.manager.dataSource, work });
   }
 
   private async saveOrThrowNameTaken(entity: ProjectEntity): Promise<void> {

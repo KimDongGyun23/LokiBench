@@ -1,6 +1,7 @@
 import { DataSource } from 'typeorm';
 
 import { createDataSourceOptions } from '@/database/data-source-options';
+import { TypeOrmIssueRepository } from '@/modules/issues/issue.repository.typeorm';
 
 import { ProjectEntity } from './project.entity';
 import { TypeOrmProjectRepository } from './project.repository.typeorm';
@@ -81,5 +82,30 @@ describe('저장할 필드 고르기', () => {
     const expected = { ...blog, color: 'rose' };
     expect(updated).toEqual(expected);
     expect(stored).toEqual(expected);
+  });
+});
+
+describe('다른 repository와 연결 나눠 쓰기', () => {
+  test('성공으로 응답한 변경이 사라지지 않도록 함께 시작한 이슈 저장이 실패해도 프로젝트 추가는 남는다', async () => {
+    // Given: 이력 저장이 실패하도록 테이블 이름을 바꿔 둠
+    const project = await repository.create({ name: '독서 기록', color: 'indigo' });
+    const issues = new TypeOrmIssueRepository(dataSource);
+    await dataSource.query(`ALTER TABLE issue_events RENAME TO issue_events_broken`);
+
+    // When: 이슈 만들기를 기다리지 않고 프로젝트 추가를 함께 시작함
+    const [issueResult, projectResult] = await Promise.allSettled([
+      issues.create({
+        projectId: project.id,
+        title: '읽은 책 별점 입력',
+        due: null,
+        now: new Date(),
+      }),
+      repository.create({ name: '가계부', color: 'teal' }),
+    ]);
+
+    // Then
+    expect(issueResult.status).toBe('rejected');
+    expect(projectResult.status).toBe('fulfilled');
+    expect(await repository.findByName('가계부')).not.toBeNull();
   });
 });

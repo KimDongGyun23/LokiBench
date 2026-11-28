@@ -2,17 +2,18 @@ import { createProjectRequestSchema, type Project } from '@lokibench/shared/cont
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { delay, http, HttpResponse } from 'msw';
+import { http, HttpResponse } from 'msw';
 import { toast } from 'sonner';
 
 import { Toaster } from '@/components/Toaster';
 import { createQueryClient } from '@/lib/query-client';
+import { createResponseGate, type ResponseGate } from '@/test/response-gate';
 import { server } from '@/test/server';
 
 import { CreateProjectForm } from './CreateProjectForm';
 
 // 추가 요청에 서버가 어떻게 답할지
-type CreateResponsePlan = 'success' | 'slowSuccess' | 'nameTaken' | 'failure';
+type CreateResponsePlan = 'success' | 'nameTaken' | 'failure';
 
 /**
  * 프로젝트 추가 요청에 정한 대로 답하게 한다.
@@ -20,9 +21,12 @@ type CreateResponsePlan = 'success' | 'slowSuccess' | 'nameTaken' | 'failure';
  * - 성공으로 답하면 요청에 담긴 이름 그대로 새 프로젝트를 돌려준다
  * - 이미 추가한 이름이 다시 오면 진짜 서버처럼 같은 이름으로 거절한다
  *
- * @param plan 성공, 늦은 성공, 같은 이름 거절, 그 밖의 실패 중 하나
+ * - 문을 넘기면 성공 응답을 테스트가 풀 때까지 붙잡아 둔다
+ *
+ * @param plan 성공, 같은 이름 거절, 그 밖의 실패 중 하나
+ * @param gate 성공 응답을 붙잡아 둘 문
  */
-function respondToCreate(plan: CreateResponsePlan) {
+function respondToCreate(plan: CreateResponsePlan, gate?: ResponseGate) {
   const createdNames = new Set<string>();
 
   server.use(
@@ -38,7 +42,7 @@ function respondToCreate(plan: CreateResponsePlan) {
       }
       createdNames.add(name);
 
-      if (plan === 'slowSuccess') await delay(200);
+      await gate?.wait();
 
       const project: Project = {
         id: 4,
@@ -105,9 +109,10 @@ describe('프로젝트 추가', () => {
   });
 
   test('다음 이름이 지워지지 않게 하기 위해 추가하는 중에는 입력을 받지 않는다', async () => {
-    // Given: 추가 응답이 늦게 옴
+    // Given: 추가 응답을 붙잡아 둠
     const user = userEvent.setup();
-    respondToCreate('slowSuccess');
+    const gate = createResponseGate();
+    respondToCreate('success', gate);
     const input = renderCreateProjectForm();
     await user.type(input, '블로그{Enter}');
 
@@ -116,17 +121,21 @@ describe('프로젝트 추가', () => {
 
     // Then
     expect(input).toHaveValue('블로그');
+    gate.release();
+    expect(await screen.findByText('블로그 프로젝트를 추가했습니다.')).toBeInTheDocument();
   });
 
   test('같은 프로젝트가 두 번 추가되지 않게 하기 위해 추가하는 중에 Enter를 다시 눌러도 한 번만 추가한다', async () => {
-    // Given: 추가 응답이 늦게 옴
+    // Given: 추가 응답을 붙잡아 둠
     const user = userEvent.setup();
-    respondToCreate('slowSuccess');
+    const gate = createResponseGate();
+    respondToCreate('success', gate);
     const input = renderCreateProjectForm();
     await user.type(input, '블로그{Enter}');
 
-    // When: 응답을 기다리는 동안 Enter를 한 번 더 누름
+    // When: 응답을 기다리는 동안 Enter를 한 번 더 누른 뒤 응답을 보냄
     await user.type(input, '{Enter}');
+    gate.release();
 
     // Then: 두 번째 요청이 나갔다면 같은 이름으로 거절되어 오류가 보였을 것임
     expect(await screen.findByText('블로그 프로젝트를 추가했습니다.')).toBeInTheDocument();

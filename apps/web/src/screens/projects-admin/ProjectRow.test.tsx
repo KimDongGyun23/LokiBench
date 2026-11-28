@@ -1,14 +1,15 @@
 import { type Project, updateProjectRequestSchema } from '@lokibench/shared/contracts';
-import { QueryClientProvider, useQuery } from '@tanstack/react-query';
+import { QueryClientProvider, useIsMutating, useQuery } from '@tanstack/react-query';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { delay, http, HttpResponse } from 'msw';
+import { http, HttpResponse } from 'msw';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { Toaster } from '@/components/Toaster';
 import { projectQueries } from '@/domains/projects/query-options';
 import { createQueryClient } from '@/lib/query-client';
+import { createResponseGate, type ResponseGate } from '@/test/response-gate';
 import { server } from '@/test/server';
 
 import { ProjectRow } from './ProjectRow';
@@ -38,7 +39,7 @@ afterEach(() => {
 
 // 색 변경 요청에 서버가 어떻게 답할지
 interface ColorResponsePlan {
-  delayMs: number;
+  gate?: ResponseGate;
   isFailure: boolean;
 }
 
@@ -46,14 +47,15 @@ interface ColorResponsePlan {
  * 가계부의 색 변경 요청에 정한 대로 답하게 한다.
  *
  * - 성공으로 답하면 서버가 들고 있는 색도 바꾼다
+ * - 문을 넘기면 응답을 테스트가 풀 때까지 붙잡아 둔다
  *
- * @param plan 걸릴 시간과 실패 여부
+ * @param plan 응답을 붙잡아 둘 문과 실패 여부
  */
-function respondToColorChange({ delayMs, isFailure }: ColorResponsePlan) {
+function respondToColorChange({ gate, isFailure }: ColorResponsePlan) {
   server.use(
     http.patch('/api/projects/2', async ({ request }) => {
       const { color } = updateProjectRequestSchema.parse(await request.json());
-      await delay(delayMs);
+      await gate?.wait();
       if (isFailure || color === undefined) {
         return HttpResponse.json({ code: 'INTERNAL', message: 'boom' }, { status: 500 });
       }
@@ -96,27 +98,34 @@ function respondToRename(plan: RenameResponsePlan) {
 
 /**
  * 받은 프로젝트 목록을 행으로 그리고, 어느 행을 고치는 중인지 기억한다.
+ *
+ * - 저장하는 동안에는 "저장 중"을 보여 테스트가 시간 대신 이 글자로 끝을 기다린다
  */
 function ProjectRows() {
   const { data: projects } = useQuery(projectQueries.list());
   const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
+  const savingCount = useIsMutating();
 
   return (
-    <table>
-      <tbody>
-        {projects?.map((project) => (
-          <ProjectRow
-            key={project.id}
-            project={project}
-            openIssueCount={undefined}
-            isEditing={editingProjectId === project.id}
-            canEdit={editingProjectId === null}
-            onEditStart={() => setEditingProjectId(project.id)}
-            onEditEnd={() => setEditingProjectId(null)}
-          />
-        ))}
-      </tbody>
-    </table>
+    <>
+      {/* 저장과 그 뒤의 목록 다시 받기가 끝났는지 테스트가 알 수 있게 보임 */}
+      {savingCount > 0 && <p>저장 중</p>}
+      <table>
+        <tbody>
+          {projects?.map((project) => (
+            <ProjectRow
+              key={project.id}
+              project={project}
+              openIssueCount={undefined}
+              isEditing={editingProjectId === project.id}
+              canEdit={editingProjectId === null}
+              onEditStart={() => setEditingProjectId(project.id)}
+              onEditEnd={() => setEditingProjectId(null)}
+            />
+          ))}
+        </tbody>
+      </table>
+    </>
   );
 }
 
@@ -155,9 +164,10 @@ describe('프로젝트 행', () => {
   });
 
   test('누른 즉시 반영되기 위해 응답을 기다리지 않고 누른 색을 고른 상태로 보인다', async () => {
-    // Given: 응답이 늦게 옴
+    // Given: 응답을 붙잡아 둠
     const user = userEvent.setup();
-    respondToColorChange({ delayMs: 200, isFailure: false });
+    const gate = createResponseGate();
+    respondToColorChange({ gate, isFailure: false });
     await renderProjectRow();
 
     // When
@@ -166,18 +176,19 @@ describe('프로젝트 행', () => {
     // Then
     expect(screen.getByRole('button', { name: 'rose', pressed: true })).toBeInTheDocument();
     expect(serverProjects).toEqual([BUDGET]);
+    gate.release();
+    await waitFor(() => expect(screen.queryByText('저장 중')).not.toBeInTheDocument());
   });
 
   test('저장된 색을 계속 보이기 위해 색 변경에 성공하면 누른 색이 고른 상태로 남는다', async () => {
     // Given
     const user = userEvent.setup();
-    respondToColorChange({ delayMs: 0, isFailure: false });
+    respondToColorChange({ isFailure: false });
     await renderProjectRow();
 
-    // When
+    // When: 저장과 목록 다시 받기가 끝날 때까지 기다림
     await user.click(screen.getByRole('button', { name: 'rose' }));
-    await screen.findByRole('button', { name: 'rose', pressed: true });
-    await delay(100);
+    await waitFor(() => expect(screen.queryByText('저장 중')).not.toBeInTheDocument());
 
     // Then
     expect(serverProjects).toEqual([{ ...BUDGET, color: 'rose' }]);
@@ -187,12 +198,14 @@ describe('프로젝트 행', () => {
   test('저장되지 않은 색이 남지 않게 하기 위해 색 변경이 실패하면 원래 색으로 돌아가고 오류 토스트를 띄운다', async () => {
     // Given
     const user = userEvent.setup();
-    respondToColorChange({ delayMs: 50, isFailure: true });
+    const gate = createResponseGate();
+    respondToColorChange({ gate, isFailure: true });
     await renderProjectRow();
 
-    // When
+    // When: 누른 색이 먼저 보인 뒤 실패 응답이 옴
     await user.click(screen.getByRole('button', { name: 'rose' }));
     expect(screen.getByRole('button', { name: 'rose', pressed: true })).toBeInTheDocument();
+    gate.release();
 
     // Then
     expect(
@@ -255,12 +268,8 @@ describe('프로젝트 이름 변경', () => {
     // When: 뒤에 공백만 덧붙이고 저장함
     await user.type(input, ' {Enter}');
 
-    // Then
+    // Then: 요청이 나갔다면 실패 응답 때문에 입력칸이 닫히지 않았을 것임
     expect(screen.queryByRole('textbox', { name: '가계부의 새 이름' })).not.toBeInTheDocument();
-    await delay(100);
-    expect(
-      screen.queryByText('이름을 변경하지 못했습니다. 다시 시도해 주세요.'),
-    ).not.toBeInTheDocument();
     expect(screen.getByText('가계부')).toBeInTheDocument();
   });
 
@@ -295,11 +304,12 @@ describe('프로젝트 이름 변경', () => {
   });
 
   test('취소했는데 이름이 바뀌는 일이 없게 하기 위해 저장하는 중에는 ESC를 눌러도 닫지 않는다', async () => {
-    // Given: 저장 응답이 늦게 옴
+    // Given: 저장 응답을 붙잡아 둠
     const user = userEvent.setup();
+    const gate = createResponseGate();
     server.use(
       http.patch('/api/projects/2', async () => {
-        await delay(200);
+        await gate.wait();
 
         return HttpResponse.json({ ...BUDGET, name: '생활비' });
       }),
@@ -316,6 +326,8 @@ describe('프로젝트 이름 변경', () => {
 
     // Then
     expect(input).toBeInTheDocument();
+    gate.release();
+    await waitFor(() => expect(screen.queryByText('저장 중')).not.toBeInTheDocument());
   });
 
   test('다시 열었을 때 지난 오류가 보이지 않게 하기 위해 취소하면 오류도 함께 버린다', async () => {

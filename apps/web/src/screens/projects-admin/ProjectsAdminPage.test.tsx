@@ -1,7 +1,7 @@
 import { type Project, updateProjectRequestSchema } from '@lokibench/shared/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { delay, http, HttpResponse } from 'msw';
+import { http, HttpResponse } from 'msw';
 
 import { renderApp } from '@/test/render';
 import { server } from '@/test/server';
@@ -55,10 +55,12 @@ describe('프로젝트 관리 다시 받기 실패', () => {
       http.patch('/api/projects/2', () => HttpResponse.json({ ...PROJECTS[1], color: 'rose' })),
     );
 
-    // When: 색을 바꿔서 목록을 다시 받게 함
+    // When: 색을 바꿔서 목록을 다시 받게 하고, 다시 받기가 실패해 저장 중인 색 표시가 끝날 때까지 기다림
     await user.click(within(budgetRow).getByRole('button', { name: 'rose' }));
     await waitFor(() => expect(failedListRequestCount).toBe(1));
-    await delay(50);
+    expect(
+      await within(budgetRow).findByRole('button', { name: 'teal', pressed: true }),
+    ).toBeInTheDocument();
 
     // Then
     expect(screen.getByRole('table', { name: '프로젝트' })).toBeInTheDocument();

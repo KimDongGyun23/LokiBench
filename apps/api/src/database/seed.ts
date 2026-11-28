@@ -44,6 +44,7 @@ const SEED_ISSUES: ReadonlyArray<SeedIssue> = [
  * - 실사용 DB에 예시가 섞이지 않도록 LOKIBENCH_DB 값과 관계없이 dev.db에만 넣는다
  * - 같은 이름의 프로젝트가 이미 있으면 건너뛰어서 여러 번 실행해도 행이 늘지 않는다
  * - 이슈는 한 건이라도 있으면 통째로 건너뛴다
+ *   (이슈를 넣다가 실패하면 다시 돌려도 남은 이슈가 들어가지 않으므로 dev.db를 지우고 다시 돌린다)
  */
 async function seed(): Promise<void> {
   const { databasePath } = resolveDatabaseLocation({ dataDir: DATA_DIR, target: 'dev' });

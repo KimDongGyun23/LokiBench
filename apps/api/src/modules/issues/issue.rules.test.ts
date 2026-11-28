@@ -22,6 +22,7 @@ function openIssue(status: OpenIssueStatus = 'TODO'): OpenIssue {
     number: 1,
     title: '읽은 책 별점 입력',
     due: '2026-11-30',
+    milestoneId: null,
     status,
     statusChangedAt: CREATED_AT,
     version: 3,

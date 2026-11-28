@@ -7,6 +7,8 @@ interface IssueBase {
   number: number;
   title: string;
   due: string | null;
+  // null이면 어느 마일스톤에도 들지 않음 (미지정)
+  milestoneId: number | null;
   statusChangedAt: Date;
   version: number;
   createdAt: Date;

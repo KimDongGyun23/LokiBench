@@ -23,6 +23,10 @@ export class IssueEntity {
   @Column({ type: 'text', nullable: true })
   due!: string | null;
 
+  // null이면 미지정
+  @Column({ name: 'milestone_id', type: 'integer', nullable: true })
+  milestoneId!: number | null;
+
   @Column({ type: 'text' })
   status!: IssueStatus;
 

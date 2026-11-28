@@ -120,6 +120,7 @@ describe('이슈 만들기', () => {
       number: 1,
       title: '영수증 정리',
       due: null,
+      milestoneId: null,
       status: 'TODO',
       version: 1,
       closedAt: null,

@@ -9,6 +9,9 @@ export const issueStatusSchema = z.enum(ISSUE_STATUSES);
 // 이슈 제목 입력 규칙 (앞뒤 공백을 지운 뒤 길이를 봄)
 export const issueTitleSchema = z.string().trim().min(1).max(ISSUE_TITLE_MAX_LENGTH);
 
+// 이슈가 든 마일스톤 id (null이면 미지정)
+const issueMilestoneIdSchema = z.number().int().positive().nullable();
+
 // 이슈 version (수정과 되돌리기 요청이 "내가 본 이슈"를 알리는 값)
 const issueVersionSchema = z.number().int().positive();
 
@@ -19,6 +22,7 @@ export const issueSchema = z.object({
   number: z.number().int().positive(),
   title: z.string(),
   due: dateOnlySchema.nullable(),
+  milestoneId: issueMilestoneIdSchema,
   status: issueStatusSchema,
   statusChangedAt: z.iso.datetime(),
   version: issueVersionSchema,
@@ -32,20 +36,26 @@ export const createIssueRequestSchema = z.object({
   projectId: z.number().int().positive(),
   title: issueTitleSchema,
   due: dateOnlySchema.nullable().optional(),
+  milestoneId: issueMilestoneIdSchema.optional(),
 });
 export type CreateIssueRequest = z.infer<typeof createIssueRequestSchema>;
 
-// 이슈 수정 요청 (바꿀 칸만 담고, 마감은 키가 없으면 그대로 두고 null이면 지움)
+// 이슈 수정 요청 (바꿀 칸만 담고, 마감과 마일스톤은 키가 없으면 그대로 두고 null이면 지우거나 뺌)
 export const updateIssueRequestSchema = z
   .object({
     version: issueVersionSchema,
     title: issueTitleSchema.optional(),
     due: dateOnlySchema.nullable().optional(),
     status: issueStatusSchema.optional(),
+    milestoneId: issueMilestoneIdSchema.optional(),
   })
   .refine(
-    (body) => body.title !== undefined || body.due !== undefined || body.status !== undefined,
-    { message: '제목, 마감, 상태 중 하나는 있어야 함' },
+    (body) =>
+      body.title !== undefined ||
+      body.due !== undefined ||
+      body.status !== undefined ||
+      body.milestoneId !== undefined,
+    { message: '제목, 마감, 상태, 마일스톤 중 하나는 있어야 함' },
   );
 export type UpdateIssueRequest = z.infer<typeof updateIssueRequestSchema>;
 

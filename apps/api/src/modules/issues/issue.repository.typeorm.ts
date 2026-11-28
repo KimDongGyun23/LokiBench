@@ -49,6 +49,7 @@ export class TypeOrmIssueRepository extends IssueRepository {
         number,
         title: input.title,
         due: input.due,
+        milestoneId: null,
         status: INITIAL_ISSUE_STATUS,
         statusChangedAt: at,
         version: 1,

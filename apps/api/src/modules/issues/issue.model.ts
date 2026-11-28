@@ -60,3 +60,10 @@ export interface CreateIssueInput {
   due: string | null;
   now: Date;
 }
+
+// service가 repository에 바뀐 이슈를 저장할 때 넘기는 값 (expectedVersion은 service가 읽었을 때의 version)
+export interface SaveIssueChangeInput {
+  issue: Issue;
+  expectedVersion: number;
+  event: NewStatusEvent | null;
+}

@@ -2,7 +2,9 @@ import { DataSource } from 'typeorm';
 
 import { createDataSourceOptions } from '@/database/data-source-options';
 
+import type { Issue, IssueChanges, SaveIssueChangeInput } from './issue.model';
 import { TypeOrmIssueRepository } from './issue.repository.typeorm';
+import { applyIssueUpdate } from './issue.rules';
 
 const NOW = new Date('2026-11-22T09:00:00.000Z');
 
@@ -33,6 +35,34 @@ async function readCounter(): Promise<unknown> {
 async function countIssues(): Promise<unknown> {
   const rows: { count: number }[] = await dataSource.query(`SELECT COUNT(*) AS count FROM issues`);
   return rows[0]?.count;
+}
+
+// 만든 이슈를 고치는 시각
+const LATER = new Date('2026-11-22T09:01:00.000Z');
+
+// 프로젝트 1에 이슈 하나를 만듦
+function createIssue(): Promise<Issue> {
+  return repository.create({ projectId: 1, title: '읽은 책 별점 입력', due: null, now: NOW });
+}
+
+/**
+ * 규칙 함수로 수정 요청을 적용해 saveChange에 넘길 값을 만든다.
+ *
+ * @param params.issue 지금 저장돼 있는 이슈
+ * @param params.changes 바꾸려는 칸
+ * @returns saveChange에 넘길 값
+ */
+function buildChange({
+  issue,
+  changes,
+}: {
+  issue: Issue;
+  changes: IssueChanges;
+}): SaveIssueChangeInput {
+  const result = applyIssueUpdate(issue, changes, LATER);
+  if (result.kind === 'unchanged') throw new Error('바뀐 것이 없는 수정 요청임');
+
+  return { issue: result.issue, expectedVersion: issue.version, event: result.event };
 }
 
 describe('이슈 만들기', () => {
@@ -112,6 +142,67 @@ describe('이슈 만들기', () => {
 
     // Then
     expect(issue.number).toBe(1);
+  });
+});
+
+describe('이슈 수정 저장', () => {
+  test('상태와 이력이 어긋나지 않도록 상태를 바꾼 이슈와 상태 변경 이력을 함께 저장한다', async () => {
+    // Given: TODO 이슈를 진행 중으로 옮긴 결과
+    const created = await createIssue();
+    const change = buildChange({ issue: created, changes: { status: 'IN_PROGRESS' } });
+
+    // When
+    const saved = await repository.saveChange(change);
+
+    // Then
+    expect(saved).toEqual(change.issue);
+    expect(await repository.findById(created.id)).toEqual(change.issue);
+    expect(await repository.findLastEvents(created.id, 1)).toEqual([
+      { id: 2, issueId: created.id, at: LATER, kind: 'STATUS', from: 'TODO', to: 'IN_PROGRESS' },
+    ]);
+  });
+
+  test('다른 탭의 수정을 덮어쓰지 않도록 기대한 version이 아니면 아무것도 적지 않고 null을 준다', async () => {
+    // Given: 이미 다른 수정이 version을 올린 것처럼 기대한 version을 다르게 넘김
+    const created = await createIssue();
+    const change = buildChange({ issue: created, changes: { title: '독서 목표 설정' } });
+
+    // When
+    const saved = await repository.saveChange({ ...change, expectedVersion: 3 });
+
+    // Then
+    expect(saved).toBeNull();
+    expect(await repository.findById(created.id)).toEqual(created);
+  });
+
+  test('두 탭의 수정이 함께 들어와도 하나만 반영되도록 같은 version의 저장 둘 중 하나는 null을 받고 이력도 한 줄만 늘어난다', async () => {
+    // Given
+    const created = await createIssue();
+
+    // When: 같은 version을 기대하는 저장 둘을 함께 시작함
+    const results = await Promise.all([
+      repository.saveChange(buildChange({ issue: created, changes: { status: 'IN_PROGRESS' } })),
+      repository.saveChange(buildChange({ issue: created, changes: { status: 'IN_REVIEW' } })),
+    ]);
+
+    // Then
+    expect(results.filter((result) => result === null)).toHaveLength(1);
+    expect(await repository.findLastEvents(created.id, 3)).toHaveLength(2);
+  });
+
+  test('이력 없는 상태 변경이 남지 않도록 이력 저장이 실패하면 이슈의 상태와 version도 그대로 둔다', async () => {
+    // Given: 이력 저장이 실패하도록 테이블 이름을 바꿔 둠
+    const created = await createIssue();
+    await dataSource.query(`ALTER TABLE issue_events RENAME TO issue_events_broken`);
+
+    // When
+    const attempt = repository.saveChange(
+      buildChange({ issue: created, changes: { status: 'IN_PROGRESS' } }),
+    );
+
+    // Then
+    await expect(attempt).rejects.toThrow();
+    expect(await repository.findById(created.id)).toEqual(created);
   });
 });
 

@@ -4,8 +4,13 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, type EntityManager } from 'typeorm';
 
 import { IssueEntity } from './issue.entity';
-import { toIssueEventModel, toIssueModel } from './issue.mapper';
-import type { CreateIssueInput, Issue, IssueEvent } from './issue.model';
+import {
+  toIssueEntityUpdate,
+  toIssueEventModel,
+  toIssueModel,
+  toStatusEventEntity,
+} from './issue.mapper';
+import type { CreateIssueInput, Issue, IssueEvent, SaveIssueChangeInput } from './issue.model';
 import { IssueRepository } from './issue.repository';
 import { IssueCounterEntity } from './issue-counter.entity';
 import { IssueEventEntity } from './issue-event.entity';
@@ -59,6 +64,28 @@ export class TypeOrmIssueRepository extends IssueRepository {
     return this.write(saveNewIssue);
   }
 
+  // 바뀐 이슈와 상태 변경 이력을 한 트랜잭션으로 저장함 (기대한 version의 행이 없으면 null)
+  async saveChange(input: SaveIssueChangeInput): Promise<Issue | null> {
+    const { issue, expectedVersion, event } = input;
+
+    const saveIssueChange = async (manager: EntityManager): Promise<Issue | null> => {
+      const isUpdated = await this.updateIfVersionMatches({ manager, issue, expectedVersion });
+
+      // 그사이 다른 수정이 version을 올렸으면 아무것도 적지 않음
+      if (!isUpdated) return null;
+
+      // 상태가 바뀌었을 때만 이력을 남김
+      if (event !== null) {
+        await manager.insert(IssueEventEntity, toStatusEventEntity({ issueId: issue.id, event }));
+      }
+
+      const saved = await manager.findOneByOrFail(IssueEntity, { id: issue.id });
+      return toIssueModel(saved);
+    };
+
+    return this.write(saveIssueChange);
+  }
+
   // id로 이슈 하나를 찾음 (없으면 null)
   async findById(id: number): Promise<Issue | null> {
     const entity = await this.dataSource.manager.findOneBy(IssueEntity, { id });
@@ -73,6 +100,24 @@ export class TypeOrmIssueRepository extends IssueRepository {
       take: limit,
     });
     return entities.map(toIssueEventModel);
+  }
+
+  // 기대한 version의 행일 때만 이슈를 고치고 고쳤는지를 반환함 (save()는 고친 행 수를 주지 않아 UPDATE를 씀)
+  private async updateIfVersionMatches({
+    manager,
+    issue,
+    expectedVersion,
+  }: {
+    manager: EntityManager;
+    issue: Issue;
+    expectedVersion: number;
+  }): Promise<boolean> {
+    const result = await manager.update(
+      IssueEntity,
+      { id: issue.id, version: expectedVersion },
+      toIssueEntityUpdate(issue),
+    );
+    return result.affected === 1;
   }
 
   // 번호 카운터를 1 올리고 올린 값을 반환함 (새 이슈의 번호로 씀)

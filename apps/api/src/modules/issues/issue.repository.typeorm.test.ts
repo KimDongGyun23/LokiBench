@@ -2,6 +2,7 @@ import { ISSUE_STATUSES, type IssueStatus } from '@lokibench/shared/values';
 import { DataSource } from 'typeorm';
 
 import { createDataSourceOptions } from '@/database/data-source-options';
+import { runExclusive } from '@/database/utils/run-exclusive';
 
 import type { Issue, IssueChanges, SaveIssueChangeInput, SaveIssueUndoInput } from './issue.model';
 import { TypeOrmIssueRepository } from './issue.repository.typeorm';
@@ -388,6 +389,29 @@ describe('저장 입력의 짝', () => {
 });
 
 describe('이슈 읽기', () => {
+  test('트랜잭션 도중의 값을 읽지 않도록 같은 연결의 앞 작업이 끝난 뒤에 읽는다', async () => {
+    // Given: 같은 연결에 늦게 끝나는 작업을 먼저 걸어 둠
+    const created = await createIssue();
+    const steps: string[] = [];
+    const slowWork = runExclusive({
+      dataSource,
+      work: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        steps.push('앞 작업 끝');
+      },
+    });
+
+    // When: 앞 작업을 기다리지 않고 두 읽기를 시작함
+    await Promise.all([
+      slowWork,
+      repository.findById(created.id).then(() => steps.push('이슈 읽기 끝')),
+      repository.findLastEvents(created.id, 2).then(() => steps.push('이력 읽기 끝')),
+    ]);
+
+    // Then
+    expect(steps).toEqual(['앞 작업 끝', '이슈 읽기 끝', '이력 읽기 끝']);
+  });
+
   test('service가 ISSUE_NOT_FOUND로 바꿀 수 있도록 없는 id는 예외 대신 null을 준다', async () => {
     // When
     const issue = await repository.findById(999);

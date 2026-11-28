@@ -94,3 +94,9 @@ export interface OpenIssueCount {
   projectId: number;
   count: number;
 }
+
+// 마일스톤 repository가 쓰기 트랜잭션 안에서 읽는 한 마일스톤의 이슈 요약 (열린 이슈 번호는 오름차순)
+export interface MilestoneIssueSummary {
+  issueCount: number;
+  openIssueNumbers: number[];
+}

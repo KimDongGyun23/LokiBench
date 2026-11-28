@@ -108,6 +108,7 @@ function ProjectRows() {
           <ProjectRow
             key={project.id}
             project={project}
+            openIssueCount={undefined}
             isEditing={editingProjectId === project.id}
             canEdit={editingProjectId === null}
             onEditStart={() => setEditingProjectId(project.id)}

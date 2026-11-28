@@ -64,6 +64,7 @@ function renderProjectEditRow() {
         <tbody>
           <ProjectEditRow
             project={BUDGET}
+            openIssueCount={undefined}
             color={BUDGET.color}
             onColorChange={() => undefined}
             onEditEnd={() => undefined}

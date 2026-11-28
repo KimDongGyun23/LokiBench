@@ -1,4 +1,4 @@
-import type { Project } from '@lokibench/shared/contracts';
+import { type Project, updateProjectRequestSchema } from '@lokibench/shared/contracts';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
@@ -132,5 +132,47 @@ describe('프로젝트 관리 이름 변경', () => {
     const navigation = screen.getByRole('navigation', { name: '주 메뉴' });
     expect(within(navigation).getByRole('link', { name: /생활비/ })).toBeInTheDocument();
     expect(within(navigation).queryByRole('link', { name: /가계부/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('프로젝트 관리 열린 이슈 수 실패', () => {
+  test('숫자 하나 때문에 표의 주된 일이 막히지 않도록 수를 받지 못해도 이름과 색을 평소대로 바꾸고 오류 토스트는 띄우지 않는다', async () => {
+    // Given: 수 조회에는 서버가 응답하지 않고, 이름과 색 변경은 저장함
+    const user = userEvent.setup();
+    let serverProjects = PROJECTS;
+    let openCountRequestCount = 0;
+    server.use(
+      http.get('/api/projects', () => HttpResponse.json(serverProjects)),
+      http.get('/api/issues/open-counts', () => {
+        openCountRequestCount += 1;
+        return HttpResponse.error();
+      }),
+      http.patch('/api/projects/2', async ({ request }) => {
+        const changes = updateProjectRequestSchema.parse(await request.json());
+        serverProjects = serverProjects.map((project) =>
+          project.id === 2 ? { ...project, ...changes } : project,
+        );
+
+        return HttpResponse.json(serverProjects[1]);
+      }),
+    );
+    renderApp({ route: '/projects-admin' });
+    const table = await screen.findByRole('table', { name: '프로젝트' });
+    await waitFor(() => expect(openCountRequestCount).toBe(1));
+
+    // When: 가계부의 색을 바꾸고 이름을 고침
+    const budgetRow = await within(table).findByRole('row', { name: /가계부/ });
+    await user.click(within(budgetRow).getByRole('button', { name: 'rose' }));
+    await user.click(within(table).getByRole('button', { name: '가계부 이름 수정' }));
+    const input = within(table).getByRole('textbox', { name: '가계부의 새 이름' });
+    await user.clear(input);
+    await user.type(input, '생활비{Enter}');
+
+    // Then
+    const renamedRow = await within(table).findByRole('row', { name: /생활비/ });
+    expect(
+      within(renamedRow).getByRole('button', { name: 'rose', pressed: true }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/못했습니다/)).not.toBeInTheDocument();
   });
 });

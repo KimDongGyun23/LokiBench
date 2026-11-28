@@ -86,3 +86,9 @@ export interface CreateIssueCommand {
 export interface UpdateIssueCommand extends IssueChanges {
   version: number;
 }
+
+// repository가 service에 넘기는 프로젝트 하나의 열린 이슈 수
+export interface OpenIssueCount {
+  projectId: number;
+  count: number;
+}

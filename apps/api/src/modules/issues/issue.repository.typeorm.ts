@@ -1,4 +1,4 @@
-import { INITIAL_ISSUE_STATUS } from '@lokibench/shared/values';
+import { CLOSED_ISSUE_STATUS, INITIAL_ISSUE_STATUS } from '@lokibench/shared/values';
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, type EntityManager } from 'typeorm';
@@ -10,12 +10,14 @@ import {
   toIssueEntityUpdate,
   toIssueEventModel,
   toIssueModel,
+  toOpenIssueCountModel,
   toStatusEventEntity,
 } from './issue.mapper';
 import type {
   CreateIssueInput,
   Issue,
   IssueEvent,
+  OpenIssueCount,
   SaveIssueChangeInput,
   SaveIssueUndoInput,
 } from './issue.model';
@@ -131,6 +133,20 @@ export class TypeOrmIssueRepository extends IssueRepository {
       manager.find(IssueEventEntity, { where: { issueId }, order: { id: 'DESC' }, take: limit }),
     );
     return entities.map(toIssueEventModel);
+  }
+
+  async countOpenByProject(): Promise<OpenIssueCount[]> {
+    const rows: unknown[] = await this.read((manager) =>
+      manager
+        .createQueryBuilder(IssueEntity, 'issue')
+        .select('issue.projectId', 'projectId')
+        .addSelect('COUNT(*)', 'count')
+        .where('issue.status != :closed', { closed: CLOSED_ISSUE_STATUS })
+        .groupBy('issue.projectId')
+        .orderBy('issue.projectId', 'ASC')
+        .getRawMany(),
+    );
+    return rows.map(toOpenIssueCountModel);
   }
 
   // 기대한 version의 행일 때만 이슈를 고치고 고쳤는지를 반환함 (save()는 고친 행 수를 주지 않아 UPDATE를 씀)

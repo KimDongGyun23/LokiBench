@@ -63,6 +63,23 @@ describe('이슈 만들기', () => {
     });
   });
 
+  test('마감을 잃지 않도록 만들 때 넘긴 마감을 그대로 저장한다', async () => {
+    // Given
+    const project = await addProject('가계부');
+
+    // When
+    const response = await request(server)
+      .post('/api/issues')
+      .send({ projectId: project.id, title: '영수증 정리', due: '2026-11-30' });
+
+    // Then: 응답과 다시 읽은 이슈 모두 마감이 남아 있음
+    expect(response.status).toBe(201);
+    const created = issueSchema.parse(response.body);
+    expect(created.due).toBe('2026-11-30');
+    const stored = await request(server).get(`/api/issues/${created.id}`);
+    expect(issueSchema.parse(stored.body).due).toBe('2026-11-30');
+  });
+
   test('번호로 이슈를 가리킬 수 있도록 번호는 프로젝트와 상관없이 이어진다', async () => {
     // Given: 한 프로젝트에 이슈 2건
     const books = await addProject('독서 기록');

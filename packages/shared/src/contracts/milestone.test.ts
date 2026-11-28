@@ -1,5 +1,6 @@
 import {
   createMilestoneRequestSchema,
+  listMilestonesQuerySchema,
   milestoneHasOpenIssuesDetailsSchema,
   milestoneTitleSchema,
   updateMilestoneRequestSchema,
@@ -105,5 +106,17 @@ describe('닫기 거부의 details', () => {
     expect(milestoneHasOpenIssuesDetailsSchema.safeParse({ openIssueNumbers: ['1'] }).success).toBe(
       false,
     );
+  });
+});
+
+describe('마일스톤 목록 쿼리', () => {
+  test('쿼리는 글자로 오므로 숫자 글자를 숫자로 바꾼다', () => {
+    expect(listMilestonesQuerySchema.parse({ projectId: '3' })).toEqual({ projectId: 3 });
+  });
+
+  test('이슈 목록과 같이 같은 숫자로 읽히는 다른 표기는 받지 않는다', () => {
+    for (const projectId of ['1.5', '1e0', '', 'abc']) {
+      expect(listMilestonesQuerySchema.safeParse({ projectId }).success).toBe(false);
+    }
   });
 });

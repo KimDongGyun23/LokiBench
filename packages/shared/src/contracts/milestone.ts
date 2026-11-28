@@ -58,9 +58,9 @@ export const updateMilestoneRequestSchema = milestoneFieldsSchema.refine(
 );
 export type UpdateMilestoneRequest = z.infer<typeof updateMilestoneRequestSchema>;
 
-// 마일스톤 목록 조회 쿼리 (쿼리는 글자로 오므로 숫자로 바꿔서 검사)
+// 마일스톤 목록 조회 쿼리 (쿼리는 글자로 오므로 숫자 글자만 받아 숫자로 바꿈)
 export const listMilestonesQuerySchema = z.object({
-  projectId: z.coerce.number().int().positive(),
+  projectId: z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().positive()),
 });
 export type ListMilestonesQuery = z.infer<typeof listMilestonesQuerySchema>;
 

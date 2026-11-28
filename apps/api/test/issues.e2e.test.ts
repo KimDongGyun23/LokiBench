@@ -95,7 +95,7 @@ describe('이슈 만들기', () => {
   });
 
   test('번호가 겹치지 않도록 동시에 들어온 두 만들기는 모두 성공하고 서로 다른 번호를 받는다', async () => {
-    // Given
+    // Given: 겹친 쓰기의 보장은 repository 테스트가 지키고, 여기서는 둘 다 201과 다른 번호라는 응답만 확인함
     const project = await addProject('독서 기록');
 
     // When

@@ -4,6 +4,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, type EntityManager } from 'typeorm';
 
 import { runExclusive } from '@/database/utils/run-exclusive';
+import { readMilestoneGuard } from '@/modules/milestones/milestone.reader';
 
 import { IssueEntity } from './issue.entity';
 import {
@@ -22,16 +23,25 @@ import type {
   SaveIssueUndoInput,
 } from './issue.model';
 import { IssueRepository } from './issue.repository';
+import { assertIssueFitsMilestone } from './issue.rules';
 import { IssueCounterEntity } from './issue-counter.entity';
 import { IssueEventEntity } from './issue-event.entity';
 
 // 번호 카운터 테이블의 하나뿐인 행 id
 const ISSUE_COUNTER_ID = 1;
 
+// 마일스톤에 들어가도 되는지 볼 때 넘기는 값
+interface MilestoneFitParams {
+  manager: EntityManager;
+  milestoneId: number | null;
+  issue: Pick<Issue, 'projectId' | 'status'>;
+}
+
 /**
  * sqlite에 이슈와 이슈 이력을 읽고 쓰는 repository 구현체다.
  *
  * - 읽기와 쓰기 모두 runExclusive로 같은 연결의 다른 작업이 끝난 뒤에 실행한다
+ * - 쓰기 셋은 같은 트랜잭션 안에서 마일스톤 상태를 읽고 판단해서, 그 사이 마일스톤이 닫히거나 지워지지 못한다
  */
 @Injectable()
 export class TypeOrmIssueRepository extends IssueRepository {
@@ -41,6 +51,13 @@ export class TypeOrmIssueRepository extends IssueRepository {
 
   async create(input: CreateIssueInput): Promise<Issue> {
     const saveNewIssue = async (manager: EntityManager): Promise<Issue> => {
+      // 없는 마일스톤 id로 먼저 저장하면 외래 키 오류가 나므로 저장 전에 검사함
+      await this.assertFitsMilestone({
+        manager,
+        milestoneId: input.milestoneId,
+        issue: { projectId: input.projectId, status: INITIAL_ISSUE_STATUS },
+      });
+
       const number = await this.incrementIssueCounter(manager);
       const at = input.now.toISOString();
 
@@ -49,7 +66,7 @@ export class TypeOrmIssueRepository extends IssueRepository {
         number,
         title: input.title,
         due: input.due,
-        milestoneId: null,
+        milestoneId: input.milestoneId,
         status: INITIAL_ISSUE_STATUS,
         statusChangedAt: at,
         version: 1,
@@ -74,6 +91,7 @@ export class TypeOrmIssueRepository extends IssueRepository {
     const { issue, expectedVersion, event } = input;
 
     const saveIssueChange = async (manager: EntityManager): Promise<Issue | null> => {
+      await this.assertFitsMilestone({ manager, milestoneId: issue.milestoneId, issue });
       const isUpdated = await this.updateIfVersionMatches({ manager, issue, expectedVersion });
 
       // 그사이 다른 수정이 version을 올렸으면 아무것도 적지 않음
@@ -95,6 +113,7 @@ export class TypeOrmIssueRepository extends IssueRepository {
     const { issue, expectedVersion, removedEventId } = input;
 
     const saveIssueUndo = async (manager: EntityManager): Promise<Issue | null> => {
+      await this.assertFitsMilestone({ manager, milestoneId: issue.milestoneId, issue });
       const isUpdated = await this.updateIfVersionMatches({ manager, issue, expectedVersion });
 
       // 그사이 다른 수정이 version을 올렸으면 아무것도 적지 않음
@@ -171,6 +190,18 @@ export class TypeOrmIssueRepository extends IssueRepository {
       toIssueEntityUpdate(issue),
     );
     return result.affected === 1;
+  }
+
+  // 저장하려는 이슈가 그 마일스톤에 들어가도 되는지 같은 트랜잭션 안에서 읽어 판단함 (미지정이면 볼 것이 없음)
+  private async assertFitsMilestone({
+    manager,
+    milestoneId,
+    issue,
+  }: MilestoneFitParams): Promise<void> {
+    if (milestoneId === null) return;
+
+    const guard = await readMilestoneGuard({ manager, milestoneId });
+    assertIssueFitsMilestone({ issue, guard });
   }
 
   // 번호 카운터를 1 올리고 올린 값을 반환함 (새 이슈의 번호로 씀)

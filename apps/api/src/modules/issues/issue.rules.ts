@@ -69,7 +69,8 @@ export function applyIssueUpdate(
 
 // 마일스톤에 들어가도 되는지 볼 때 넘기는 값
 interface IssueMilestoneFit {
-  issue: Issue;
+  // 판단에는 프로젝트와 상태만 쓰므로 저장 전의 새 이슈도 넘길 수 있음
+  issue: Pick<Issue, 'projectId' | 'status'>;
   guard: MilestoneGuard | null;
 }
 
@@ -80,7 +81,7 @@ interface IssueMilestoneFit {
  * - "열린 이슈가 닫힌 마일스톤에 있음" 하나로 넣기, 다시 열기, 닫은 것 되돌리기를 모두 막는다
  *   (닫힌 이슈는 마일스톤을 바꿀 수 없어서 닫힌 마일스톤에 닫힌 이슈를 새로 넣는 길은 없음)
  *
- * @param params.issue 저장하려는 이슈 (바뀐 뒤의 값)
+ * @param params.issue 저장하려는 이슈의 프로젝트와 상태 (바뀐 뒤의 값)
  * @param params.guard 이슈가 가리키는 마일스톤의 상태 (없거나 지웠으면 null)
  * @throws {DomainError} MILESTONE_NOT_FOUND, MILESTONE_PROJECT_MISMATCH, MILESTONE_CLOSED
  */

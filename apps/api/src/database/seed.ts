@@ -98,6 +98,7 @@ async function createSeedIssue({
     projectId: project.id,
     title: seedIssue.title,
     due: null,
+    milestoneId: null,
     now,
   });
   if (seedIssue.status === INITIAL_ISSUE_STATUS) return;

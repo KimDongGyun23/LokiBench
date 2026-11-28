@@ -3,6 +3,7 @@ import { DataSource } from 'typeorm';
 
 import { createDataSourceOptions } from '@/database/data-source-options';
 import { runExclusive } from '@/database/utils/run-exclusive';
+import { TypeOrmMilestoneRepository } from '@/modules/milestones/milestone.repository.typeorm';
 
 import type { Issue, IssueChanges, SaveIssueChangeInput, SaveIssueUndoInput } from './issue.model';
 import { TypeOrmIssueRepository } from './issue.repository.typeorm';
@@ -44,7 +45,13 @@ const LATER = new Date('2026-11-22T09:01:00.000Z');
 
 // 프로젝트 1에 이슈 하나를 만듦
 function createIssue(): Promise<Issue> {
-  return repository.create({ projectId: 1, title: '읽은 책 별점 입력', due: null, now: NOW });
+  return repository.create({
+    projectId: 1,
+    title: '읽은 책 별점 입력',
+    due: null,
+    milestoneId: null,
+    now: NOW,
+  });
 }
 
 /**
@@ -92,6 +99,7 @@ describe('이슈 만들기', () => {
       projectId: 1,
       title: '읽은 책 별점 입력',
       due: '2026-11-30',
+      milestoneId: null,
       now: NOW,
     });
 
@@ -118,8 +126,20 @@ describe('이슈 만들기', () => {
   test('번호가 겹치지 않도록 동시에 시작한 두 만들기는 서로 다른 번호를 받는다', async () => {
     // When: 앞 만들기를 기다리지 않고 둘을 함께 시작함
     const issues = await Promise.all([
-      repository.create({ projectId: 1, title: '읽은 책 별점 입력', due: null, now: NOW }),
-      repository.create({ projectId: 1, title: '독서 목표 설정', due: null, now: NOW }),
+      repository.create({
+        projectId: 1,
+        title: '읽은 책 별점 입력',
+        due: null,
+        milestoneId: null,
+        now: NOW,
+      }),
+      repository.create({
+        projectId: 1,
+        title: '독서 목표 설정',
+        due: null,
+        milestoneId: null,
+        now: NOW,
+      }),
     ]);
 
     // Then
@@ -136,6 +156,7 @@ describe('이슈 만들기', () => {
       projectId: 1,
       title: '읽은 책 별점 입력',
       due: null,
+      milestoneId: null,
       now: NOW,
     });
 
@@ -149,7 +170,7 @@ describe('이슈 만들기', () => {
     // Given: 한 번 실패한 뒤 테이블 이름을 되돌림
     await dataSource.query(`ALTER TABLE issue_events RENAME TO issue_events_broken`);
     await repository
-      .create({ projectId: 1, title: '읽은 책 별점 입력', due: null, now: NOW })
+      .create({ projectId: 1, title: '읽은 책 별점 입력', due: null, milestoneId: null, now: NOW })
       .catch(() => undefined);
     await dataSource.query(`ALTER TABLE issue_events_broken RENAME TO issue_events`);
 
@@ -158,6 +179,7 @@ describe('이슈 만들기', () => {
       projectId: 1,
       title: '독서 목표 설정',
       due: null,
+      milestoneId: null,
       now: NOW,
     });
 
@@ -460,6 +482,7 @@ describe('이슈 이력 읽기', () => {
       projectId: 1,
       title: '읽은 책 별점 입력',
       due: null,
+      milestoneId: null,
       now: NOW,
     });
     await dataSource.query(
@@ -511,5 +534,90 @@ describe('프로젝트별 열린 이슈 수 읽기', () => {
       { projectId: 1, count: 1 },
       { projectId: 2, count: 2 },
     ]);
+  });
+});
+
+describe('마일스톤과 함께 쓰기', () => {
+  let milestones: TypeOrmMilestoneRepository;
+
+  beforeEach(() => {
+    milestones = new TypeOrmMilestoneRepository(dataSource);
+  });
+
+  // 프로젝트 1에 빈 칸의 마일스톤을 만듦
+  function createMilestone() {
+    return milestones.create({
+      projectId: 1,
+      title: '별점과 서평',
+      startDate: null,
+      due: null,
+      background: '',
+      solution: '',
+      expectedEffect: '',
+      memo: '',
+      now: NOW,
+    });
+  }
+
+  // 닫힌 마일스톤에 든 열린 이슈 수를 셈 (있으면 안 되는 상태)
+  async function countOpenIssuesInClosedMilestones(): Promise<unknown> {
+    const rows: { count: number }[] = await dataSource.query(
+      `SELECT COUNT(*) AS count FROM issues
+       JOIN milestones ON milestones.id = issues.milestone_id
+       WHERE milestones.closed_at IS NOT NULL AND issues.status != 'DONE'`,
+    );
+    return rows[0]?.count;
+  }
+
+  test('두 탭에서 함께 눌러도 닫힌 마일스톤에 열린 이슈가 남지 않도록 마일스톤 닫기와 그 이슈의 다시 열기 중 하나만 성공한다', async () => {
+    // Given: 이슈가 모두 닫힌 마일스톤
+    const milestone = await createMilestone();
+    const created = await repository.create({
+      projectId: 1,
+      title: '읽은 책 별점 입력',
+      due: null,
+      milestoneId: milestone.id,
+      now: NOW,
+    });
+    const done = await repository.saveChange(
+      buildChange({ issue: created, changes: { status: 'DONE' } }),
+    );
+    if (!done) throw new Error('이슈를 닫지 못함');
+
+    // When: 기다리지 않고 함께 시작함
+    const results = await Promise.allSettled([
+      milestones.close({ id: milestone.id, now: LATER }),
+      repository.saveChange(buildChange({ issue: done, changes: { status: 'TODO' } })),
+    ]);
+
+    // Then
+    expect(results.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
+    expect(await countOpenIssuesInClosedMilestones()).toBe(0);
+  });
+
+  test('지운 마일스톤에 이슈가 남지 않도록 마일스톤 삭제와 그 마일스톤으로 이슈 만들기 중 하나만 성공한다', async () => {
+    // Given: 이슈가 없는 마일스톤
+    const milestone = await createMilestone();
+
+    // When: 기다리지 않고 함께 시작함
+    const results = await Promise.allSettled([
+      milestones.softDelete({ id: milestone.id, now: LATER }),
+      repository.create({
+        projectId: 1,
+        title: '읽은 책 별점 입력',
+        due: null,
+        milestoneId: milestone.id,
+        now: NOW,
+      }),
+    ]);
+
+    // Then: 지운 마일스톤에 든 이슈가 없음
+    expect(results.filter(({ status }) => status === 'fulfilled')).toHaveLength(1);
+    const rows: { count: number }[] = await dataSource.query(
+      `SELECT COUNT(*) AS count FROM issues
+       JOIN milestones ON milestones.id = issues.milestone_id
+       WHERE milestones.deleted_at IS NOT NULL`,
+    );
+    expect(rows[0]?.count).toBe(0);
   });
 });

@@ -7,6 +7,7 @@ import {
 } from '@lokibench/shared/values';
 
 import { DomainError } from '@/errors/domain-error';
+import type { MilestoneGuard } from '@/modules/milestones/milestone.model';
 
 import type { Issue, IssueChanges, IssueEvent, NewStatusEvent } from './issue.model';
 
@@ -18,6 +19,7 @@ export type IssueUpdateResult =
  * 수정 요청을 이슈에 적용해 저장할 이슈와 남길 이력을 정한다.
  *
  * - 닫힌 이슈는 상태만 바꿀 수 있고, 지금과 다른 제목, 마감, 마일스톤이 섞여 있으면 요청을 통째로 거부한다
+ * - 마일스톤을 넣어도 되는지는 여기서 보지 않는다 (저장소가 트랜잭션 안에서 assertIssueFitsMilestone으로 봄)
  * - 닫힌 이슈는 TODO로만 다시 열 수 있고, 열린 이슈는 어느 상태로든 옮길 수 있다
  * - 지금과 같은 값만 들어 있으면 바뀐 것이 없다고 답해 version이 오르지 않게 한다
  *
@@ -63,6 +65,36 @@ export function applyIssueUpdate(
     issue: withStatus({ ...issue, title, due, milestoneId, version }, status, now),
     event: { at: now, from: issue.status, to: status },
   };
+}
+
+// 마일스톤에 들어가도 되는지 볼 때 넘기는 값
+interface IssueMilestoneFit {
+  issue: Issue;
+  guard: MilestoneGuard | null;
+}
+
+/**
+ * 저장하려는 이슈가 그 마일스톤에 들어가도 되는지 판단한다.
+ *
+ * - 저장소가 쓰기 트랜잭션 안에서 읽은 마일스톤 상태로 부른다 (마일스톤이 없는 이슈면 부르지 않음)
+ * - "열린 이슈가 닫힌 마일스톤에 있음" 하나로 넣기, 다시 열기, 닫은 것 되돌리기를 모두 막는다
+ *   (닫힌 이슈는 마일스톤을 바꿀 수 없어서 닫힌 마일스톤에 닫힌 이슈를 새로 넣는 길은 없음)
+ *
+ * @param params.issue 저장하려는 이슈 (바뀐 뒤의 값)
+ * @param params.guard 이슈가 가리키는 마일스톤의 상태 (없거나 지웠으면 null)
+ * @throws {DomainError} MILESTONE_NOT_FOUND, MILESTONE_PROJECT_MISMATCH, MILESTONE_CLOSED
+ */
+export function assertIssueFitsMilestone({ issue, guard }: IssueMilestoneFit): void {
+  // 없거나 지운 마일스톤에는 넣을 수 없음
+  if (!guard) throw new DomainError('MILESTONE_NOT_FOUND');
+
+  // 다른 프로젝트의 마일스톤에는 넣을 수 없음
+  if (guard.projectId !== issue.projectId) throw new DomainError('MILESTONE_PROJECT_MISMATCH');
+
+  // 닫힌 마일스톤에는 열린 이슈를 둘 수 없음
+  if (guard.isClosed && issue.status !== CLOSED_ISSUE_STATUS) {
+    throw new DomainError('MILESTONE_CLOSED');
+  }
 }
 
 // 상태 되돌리기를 이슈에 적용한 결과

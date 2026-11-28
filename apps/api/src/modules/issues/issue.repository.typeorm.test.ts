@@ -1,4 +1,4 @@
-import { ISSUE_STATUSES } from '@lokibench/shared/values';
+import { ISSUE_STATUSES, type IssueStatus } from '@lokibench/shared/values';
 import { DataSource } from 'typeorm';
 
 import { createDataSourceOptions } from '@/database/data-source-options';
@@ -67,16 +67,17 @@ function buildChange({
 }
 
 /**
- * 이슈를 진행 중으로 옮겨 저장한 뒤, 규칙 함수로 그 변경을 되돌려 saveUndo에 넘길 값을 만든다.
+ * 새 이슈를 정한 상태로 옮겨 저장한 뒤, 규칙 함수로 그 변경을 되돌려 saveUndo에 넘길 값을 만든다.
  *
- * @returns 진행 중으로 옮긴 이슈와 saveUndo에 넘길 값
+ * @param status 옮길 상태
+ * @returns 옮긴 이슈와 saveUndo에 넘길 값
  */
-async function prepareUndo(): Promise<{ moved: Issue; undo: SaveIssueUndoInput }> {
+async function prepareUndo(
+  status: IssueStatus = 'IN_PROGRESS',
+): Promise<{ moved: Issue; undo: SaveIssueUndoInput }> {
   const created = await createIssue();
-  const moved = await repository.saveChange(
-    buildChange({ issue: created, changes: { status: 'IN_PROGRESS' } }),
-  );
-  if (moved === null) throw new Error('진행 중으로 옮기지 못함');
+  const moved = await repository.saveChange(buildChange({ issue: created, changes: { status } }));
+  if (moved === null) throw new Error(`${status}로 옮기지 못함`);
 
   const events = await repository.findLastEvents(moved.id, 2);
   const result = undoIssueStatus(moved, events, LATER);
@@ -178,6 +179,39 @@ describe('이슈 수정 저장', () => {
     expect(await repository.findLastEvents(created.id, 1)).toEqual([
       { id: 2, issueId: created.id, at: LATER, kind: 'STATUS', from: 'TODO', to: 'IN_PROGRESS' },
     ]);
+  });
+
+  test('상태 변경만 이력에 남도록 제목만 바꾸면 이슈와 version만 바뀌고 이력은 늘지 않는다', async () => {
+    // Given
+    const created = await createIssue();
+    const change = buildChange({ issue: created, changes: { title: '독서 목표 설정' } });
+
+    // When
+    const saved = await repository.saveChange(change);
+
+    // Then
+    expect(saved).toMatchObject({ title: '독서 목표 설정', version: 2 });
+    expect(await repository.findLastEvents(created.id, 2)).toEqual([
+      { id: 1, issueId: created.id, at: NOW, kind: 'CREATED' },
+    ]);
+  });
+
+  test('다시 연 이슈가 닫힌 것으로 남지 않도록 닫힌 이슈를 다시 열면 닫은 시각을 비운다', async () => {
+    // Given: 닫은 이슈
+    const created = await createIssue();
+    const closed = await repository.saveChange(
+      buildChange({ issue: created, changes: { status: 'DONE' } }),
+    );
+    if (closed === null) throw new Error('닫지 못함');
+
+    // When
+    const reopened = await repository.saveChange(
+      buildChange({ issue: closed, changes: { status: 'TODO' } }),
+    );
+
+    // Then
+    expect(reopened).toMatchObject({ status: 'TODO', closedAt: null });
+    expect(await repository.findById(created.id)).toMatchObject({ status: 'TODO', closedAt: null });
   });
 
   test('다른 탭의 수정을 덮어쓰지 않도록 기대한 version이 아니면 아무것도 적지 않고 null을 준다', async () => {
@@ -284,6 +318,38 @@ describe('상태 되돌리기 저장', () => {
   });
 });
 
+describe('상태 되돌리기 저장의 경계', () => {
+  test('되돌린 이슈가 닫힌 것으로 남지 않도록 닫은 변경을 되돌리면 닫은 시각을 비운다', async () => {
+    // Given: 닫은 이슈를 되돌린 결과
+    const { moved, undo } = await prepareUndo('DONE');
+
+    // When
+    const saved = await repository.saveUndo(undo);
+
+    // Then
+    expect(saved).toMatchObject({ status: 'TODO', closedAt: null });
+    expect(await repository.findById(moved.id)).toMatchObject({ status: 'TODO', closedAt: null });
+  });
+
+  test('다른 이슈의 이력이 조용히 지워지지 않도록 다른 이슈의 이력 id를 넘기면 던지고 두 이슈 모두 그대로 둔다', async () => {
+    // Given: 상태를 바꾼 이슈 둘
+    const first = await prepareUndo();
+    const second = await prepareUndo();
+    const secondEvents = await repository.findLastEvents(second.moved.id, 2);
+
+    // When: 첫 이슈를 되돌리면서 둘째 이슈의 상태 변경 이력 id를 넘김
+    const attempt = repository.saveUndo({
+      ...first.undo,
+      removedEventId: second.undo.removedEventId,
+    });
+
+    // Then
+    await expect(attempt).rejects.toThrow('지울 이슈 이력이 없음');
+    expect(await repository.findById(first.moved.id)).toEqual(first.moved);
+    expect(await repository.findLastEvents(second.moved.id, 2)).toEqual(secondEvents);
+  });
+});
+
 describe('이슈 읽기', () => {
   test('service가 ISSUE_NOT_FOUND로 바꿀 수 있도록 없는 id는 예외 대신 null을 준다', async () => {
     // When
@@ -314,5 +380,18 @@ describe('이슈 이력 읽기', () => {
 
     // Then
     expect(events.map((event) => event.id)).toEqual([3, 2]);
+  });
+
+  test('되돌리기가 다른 이슈의 이력을 보지 않도록 이력이 섞여 있어도 그 이슈의 이력만 준다', async () => {
+    // Given: 두 이슈의 이력이 번갈아 쌓임
+    const first = await createIssue();
+    const second = await createIssue();
+    await repository.saveChange(buildChange({ issue: first, changes: { status: 'IN_PROGRESS' } }));
+
+    // When
+    const events = await repository.findLastEvents(second.id, 3);
+
+    // Then
+    expect(events).toEqual([{ id: 2, issueId: second.id, at: NOW, kind: 'CREATED' }]);
   });
 });

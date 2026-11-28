@@ -1,4 +1,3 @@
-import { ISSUE_STATUSES } from '@lokibench/shared/values';
 import { DataSource } from 'typeorm';
 
 import { createDataSourceOptions } from '@/database/data-source-options';
@@ -8,6 +7,9 @@ import { DropProjectsArchivedAt1795219200000 } from './1795219200000-drop-projec
 import { CreateIssues1795305600000 } from './1795305600000-create-issues';
 
 const AT = '2026-11-22T00:00:00.000Z';
+
+// 이 마이그레이션이 CHECK에 적은 이슈 상태 (마이그레이션은 고치지 않으므로 공유 값이 아닌 글자로 고정함)
+const MIGRATION_ISSUE_STATUSES = ['TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'];
 
 // SQLite가 제약 종류별로 내는 오류 문구
 const CHECK_VIOLATION = /CHECK constraint failed/;
@@ -78,9 +80,9 @@ describe('이슈 테이블 만들기', () => {
 });
 
 describe('이슈 행의 제약', () => {
-  test('도메인이 아는 상태를 저장하지 못하는 일이 없도록 모든 상태의 이슈를 넣을 수 있다', async () => {
+  test('마이그레이션이 만든 그대로 동작하도록 그때 정한 네 상태의 이슈를 모두 넣을 수 있다', async () => {
     // When
-    for (const [index, status] of ISSUE_STATUSES.entries()) {
+    for (const [index, status] of MIGRATION_ISSUE_STATUSES.entries()) {
       await dataSource.query(
         insertIssueSql({
           number: String(index + 1),
@@ -92,7 +94,7 @@ describe('이슈 행의 제약', () => {
 
     // Then
     const rows: unknown = await dataSource.query(`SELECT status FROM issues ORDER BY number`);
-    expect(rows).toEqual(ISSUE_STATUSES.map((status) => ({ status })));
+    expect(rows).toEqual(MIGRATION_ISSUE_STATUSES.map((status) => ({ status })));
   });
 
   test('주인 없는 이슈가 생기지 않도록 없는 프로젝트의 이슈를 거부한다', async () => {

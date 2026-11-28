@@ -1,3 +1,4 @@
+import { ISSUE_STATUSES } from '@lokibench/shared/values';
 import { DataSource } from 'typeorm';
 
 import { createDataSourceOptions } from '@/database/data-source-options';
@@ -220,6 +221,24 @@ describe('이슈 수정 저장', () => {
     // Then
     await expect(attempt).rejects.toThrow();
     expect(await repository.findById(created.id)).toEqual(created);
+  });
+});
+
+describe('이슈 상태 저장', () => {
+  test('공유 값에 상태를 더하고 마이그레이션을 빠뜨리지 않도록 모든 이슈 상태를 저장하고 다시 읽을 수 있다', async () => {
+    // When: 상태마다 이슈를 만들어 그 상태로 옮긴 뒤 다시 읽음
+    const statuses: unknown[] = [];
+    for (const status of ISSUE_STATUSES) {
+      const created = await createIssue();
+      if (status !== created.status) {
+        await repository.saveChange(buildChange({ issue: created, changes: { status } }));
+      }
+      const issue = await repository.findById(created.id);
+      statuses.push(issue?.status);
+    }
+
+    // Then
+    expect(statuses).toEqual([...ISSUE_STATUSES]);
   });
 });
 

@@ -102,6 +102,7 @@ describe('이슈 만들기', () => {
       number: 1,
       title: '읽은 책 별점 입력',
       due: '2026-11-30',
+      milestoneId: null,
       status: 'TODO',
       statusChangedAt: NOW,
       version: 1,

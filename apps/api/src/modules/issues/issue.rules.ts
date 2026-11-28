@@ -129,8 +129,18 @@ export function undoIssueStatus(
  * @returns 새 상태의 이슈
  */
 function withStatus(issue: Issue, status: IssueStatus, at: Date): Issue {
-  const { id, projectId, number, title, due, version, createdAt } = issue;
-  const base = { id, projectId, number, title, due, version, createdAt, statusChangedAt: at };
+  const { id, projectId, number, title, due, milestoneId, version, createdAt } = issue;
+  const base = {
+    id,
+    projectId,
+    number,
+    title,
+    due,
+    milestoneId,
+    version,
+    createdAt,
+    statusChangedAt: at,
+  };
 
   if (status === CLOSED_ISSUE_STATUS) return { ...base, status, closedAt: at };
   return { ...base, status, closedAt: null };

@@ -77,3 +77,18 @@ describe('이슈 목록 조회', () => {
     expect(listIssuesQuerySchema.safeParse({ projectId: '0' }).success).toBe(false);
   });
 });
+
+describe('이슈의 마일스톤 칸', () => {
+  test('만들 때 마일스톤을 고를 수 있도록 마일스톤 id를 받는다', () => {
+    expect(
+      createIssueRequestSchema.parse({ projectId: 1, title: '글 초안 저장', milestoneId: 3 }),
+    ).toEqual({ projectId: 1, title: '글 초안 저장', milestoneId: 3 });
+  });
+
+  test('마일스톤에서 빼는 것도 수정이므로 milestoneId null만 보내도 받는다', () => {
+    expect(updateIssueRequestSchema.parse({ version: 1, milestoneId: null })).toEqual({
+      version: 1,
+      milestoneId: null,
+    });
+  });
+});

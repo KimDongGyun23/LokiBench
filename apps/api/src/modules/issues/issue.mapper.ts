@@ -32,6 +32,7 @@ export function toIssueModel(entity: IssueEntity): Issue {
     number: entity.number,
     title: entity.title,
     due: entity.due,
+    milestoneId: entity.milestoneId,
     statusChangedAt: parseStoredInstant({
       value: entity.statusChangedAt,
       column: 'issues.status_changed_at',
@@ -124,10 +125,14 @@ export function toOpenIssueCountModel(row: unknown): OpenIssueCount {
  */
 export function toIssueEntityUpdate(
   issue: Issue,
-): Pick<IssueEntity, 'title' | 'due' | 'status' | 'statusChangedAt' | 'version' | 'closedAt'> {
+): Pick<
+  IssueEntity,
+  'title' | 'due' | 'milestoneId' | 'status' | 'statusChangedAt' | 'version' | 'closedAt'
+> {
   return {
     title: issue.title,
     due: issue.due,
+    milestoneId: issue.milestoneId,
     status: issue.status,
     statusChangedAt: issue.statusChangedAt.toISOString(),
     version: issue.version,
@@ -174,6 +179,7 @@ export function toIssueResponse(issue: Issue): IssueResponse {
     number: issue.number,
     title: issue.title,
     due: issue.due,
+    milestoneId: issue.milestoneId,
     status: issue.status,
     statusChangedAt: issue.statusChangedAt.toISOString(),
     version: issue.version,

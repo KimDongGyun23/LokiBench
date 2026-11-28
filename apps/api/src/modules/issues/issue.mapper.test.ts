@@ -17,6 +17,7 @@ const CLOSED_ENTITY = {
   number: 3,
   title: '읽은 책 별점 입력',
   due: '2026-11-30',
+  milestoneId: 2,
   status: 'DONE',
   statusChangedAt: '2026-11-22T09:05:00.000Z',
   version: 4,
@@ -45,6 +46,7 @@ describe('도메인 이슈 모양', () => {
       number: 3,
       title: '읽은 책 별점 입력',
       due: '2026-11-30',
+      milestoneId: 2,
       status: 'DONE',
       statusChangedAt: new Date('2026-11-22T09:05:00.000Z'),
       version: 4,
@@ -156,6 +158,7 @@ describe('이슈 UPDATE 칸', () => {
     expect(update).toEqual({
       title: '읽은 책 별점 입력',
       due: '2026-11-30',
+      milestoneId: 2,
       status: 'DONE',
       statusChangedAt: '2026-11-22T09:05:00.000Z',
       version: 4,
@@ -179,12 +182,24 @@ describe('이슈 응답 모양', () => {
       number: 3,
       title: '읽은 책 별점 입력',
       due: '2026-11-30',
+      milestoneId: 2,
       status: 'DONE',
       statusChangedAt: '2026-11-22T09:05:00.000Z',
       version: 4,
       createdAt: '2026-11-22T09:00:00.000Z',
       closedAt: '2026-11-22T09:05:00.000Z',
     });
+  });
+
+  test('미지정 이슈가 어느 마일스톤에 든 것으로 보이지 않도록 마일스톤이 없으면 null로 준다', () => {
+    // Given
+    const issue = toIssueModel({ ...CLOSED_ENTITY, milestoneId: null });
+
+    // When
+    const response = toIssueResponse(issue);
+
+    // Then
+    expect(response.milestoneId).toBeNull();
   });
 
   test('열린 이슈가 닫힌 것으로 보이지 않도록 닫은 시각이 없으면 null로 준다', () => {

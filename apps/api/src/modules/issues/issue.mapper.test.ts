@@ -6,6 +6,7 @@ import {
   toIssueEventModel,
   toIssueModel,
   toIssueResponse,
+  toOpenIssueCountModel,
 } from './issue.mapper';
 import type { IssueEventEntity } from './issue-event.entity';
 
@@ -122,6 +123,24 @@ describe('도메인 이슈 이력 모양', () => {
 
     // Then
     expect(attempt).toThrow('issue_events.payload 형식이 잘못됨: id=9');
+  });
+});
+
+describe('열린 이슈 수 모양', () => {
+  test('화면이 수를 숫자로 쓰도록 세어 읽은 행을 프로젝트 id와 수로 준다', () => {
+    // When
+    const count = toOpenIssueCountModel({ projectId: 1, count: 2 });
+
+    // Then
+    expect(count).toEqual({ projectId: 1, count: 2 });
+  });
+
+  test('글자로 된 수가 화면까지 가지 않도록 수가 숫자가 아니면 읽은 행을 담아 던진다', () => {
+    // When
+    const attempt = () => toOpenIssueCountModel({ projectId: 1, count: '2' });
+
+    // Then
+    expect(attempt).toThrow('열린 이슈 수 행 형식이 잘못됨: {"projectId":1,"count":"2"}');
   });
 });
 

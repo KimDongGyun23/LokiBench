@@ -401,15 +401,16 @@ describe('이슈 읽기', () => {
       },
     });
 
-    // When: 앞 작업을 기다리지 않고 두 읽기를 시작함
+    // When: 앞 작업을 기다리지 않고 세 읽기를 시작함
     await Promise.all([
       slowWork,
       repository.findById(created.id).then(() => steps.push('이슈 읽기 끝')),
       repository.findLastEvents(created.id, 2).then(() => steps.push('이력 읽기 끝')),
+      repository.countOpenByProject().then(() => steps.push('열린 이슈 수 읽기 끝')),
     ]);
 
     // Then
-    expect(steps).toEqual(['앞 작업 끝', '이슈 읽기 끝', '이력 읽기 끝']);
+    expect(steps).toEqual(['앞 작업 끝', '이슈 읽기 끝', '이력 읽기 끝', '열린 이슈 수 읽기 끝']);
   });
 
   test('service가 ISSUE_NOT_FOUND로 바꿀 수 있도록 없는 id는 예외 대신 null을 준다', async () => {
@@ -484,5 +485,30 @@ describe('이슈 이력 읽기', () => {
 
     // Then
     expect(events).toEqual([{ id: 2, issueId: second.id, at: NOW, kind: 'CREATED' }]);
+  });
+});
+
+describe('프로젝트별 열린 이슈 수 읽기', () => {
+  test('약속한 순서를 지키도록 행을 넣은 순서와 상관없이 프로젝트 id 오름차순으로 준다', async () => {
+    // Given: 프로젝트 2의 이슈를 먼저 넣고 프로젝트 1의 이슈를 나중에 넣음
+    await dataSource.query(
+      `INSERT INTO projects (name, color, created_at)
+       VALUES ('가계부', 'teal', '2026-11-01T00:00:00.000Z')`,
+    );
+    await dataSource.query(
+      `INSERT INTO issues (project_id, number, title, status, status_changed_at, version, created_at)
+       VALUES (2, 1, '이번 달 영수증 정리', 'TODO', '${NOW.toISOString()}', 1, '${NOW.toISOString()}'),
+              (2, 2, '카드값 확인', 'IN_REVIEW', '${NOW.toISOString()}', 1, '${NOW.toISOString()}'),
+              (1, 3, '읽은 책 별점 입력', 'TODO', '${NOW.toISOString()}', 1, '${NOW.toISOString()}')`,
+    );
+
+    // When
+    const counts = await repository.countOpenByProject();
+
+    // Then
+    expect(counts).toEqual([
+      { projectId: 1, count: 1 },
+      { projectId: 2, count: 2 },
+    ]);
   });
 });

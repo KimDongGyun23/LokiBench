@@ -1,9 +1,15 @@
 import type { Server } from 'node:net';
 
-import { errorResponseSchema, issueSchema, projectSchema } from '@lokibench/shared/contracts';
+import {
+  errorResponseSchema,
+  issueSchema,
+  openIssueCountSchema,
+  projectSchema,
+} from '@lokibench/shared/contracts';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import type { DataSource } from 'typeorm';
+import { z } from 'zod';
 
 import { createTestApp } from './create-test-app';
 
@@ -87,6 +93,13 @@ async function undoIssue(id: number, version: number) {
   const response = await undoStatus(id, version);
   expect(response.status).toBe(200);
   return issueSchema.parse(response.body);
+}
+
+// 프로젝트별 열린 이슈 수를 받아 계약 모양인지 확인한 목록을 돌려줌
+async function readOpenCounts() {
+  const response = await request(server).get('/api/issues/open-counts');
+  expect(response.status).toBe(200);
+  return z.array(openIssueCountSchema).parse(response.body);
 }
 
 describe('이슈 만들기', () => {
@@ -666,5 +679,48 @@ describe('상태 되돌리기', () => {
     // Then
     expect(response.status).toBe(404);
     expect(errorResponseSchema.parse(response.body).code).toBe('ISSUE_NOT_FOUND');
+  });
+});
+
+describe('열린 이슈 수', () => {
+  test('프로젝트 표가 남은 일의 양을 보이도록 닫히지 않은 이슈만 세고 이슈가 없는 프로젝트는 빼고 준다', async () => {
+    // Given: 가계부에 TODO 1, IN_PROGRESS 1, DONE 1, 독서 기록에는 이슈 없음
+    const budget = await addProject('가계부');
+    await addProject('독서 기록');
+    await addIssue(budget.id, '영수증 정리');
+    const started = await addIssue(budget.id, '카드값 확인');
+    await changeIssue(started.id, { version: started.version, status: 'IN_PROGRESS' });
+    await addClosedIssue(budget.id);
+
+    // When
+    const counts = await readOpenCounts();
+
+    // Then
+    expect(counts).toEqual([{ projectId: budget.id, count: 2 }]);
+  });
+
+  test('닫은 일이 수에서 빠지도록 이슈를 DONE으로 옮기면 그 프로젝트의 수가 준다', async () => {
+    // Given
+    const budget = await addProject('가계부');
+    const issue = await addIssue(budget.id, '영수증 정리');
+    await addIssue(budget.id, '카드값 확인');
+
+    // When
+    await changeIssue(issue.id, { version: issue.version, status: 'DONE' });
+
+    // Then
+    expect(await readOpenCounts()).toEqual([{ projectId: budget.id, count: 1 }]);
+  });
+
+  test('화면이 없는 프로젝트를 0으로 보므로 열린 이슈를 모두 닫으면 그 프로젝트를 목록에서 뺀다', async () => {
+    // Given
+    const budget = await addProject('가계부');
+    const issue = await addIssue(budget.id, '영수증 정리');
+
+    // When
+    await changeIssue(issue.id, { version: issue.version, status: 'DONE' });
+
+    // Then
+    expect(await readOpenCounts()).toEqual([]);
   });
 });

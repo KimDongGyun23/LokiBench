@@ -2,6 +2,7 @@ import type {
   CreateIssueInput,
   Issue,
   IssueEvent,
+  OpenIssueCount,
   SaveIssueChangeInput,
   SaveIssueUndoInput,
 } from './issue.model';
@@ -30,4 +31,7 @@ export abstract class IssueRepository {
   abstract findByProject(projectId: number): Promise<Issue[]>;
 
   abstract findLastEvents(issueId: number, limit: number): Promise<IssueEvent[]>;
+
+  // 열린 이슈가 1건 이상인 프로젝트만 프로젝트 id 오름차순으로 줌
+  abstract countOpenByProject(): Promise<OpenIssueCount[]>;
 }

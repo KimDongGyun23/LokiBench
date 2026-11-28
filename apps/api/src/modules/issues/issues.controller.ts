@@ -2,6 +2,7 @@ import {
   createIssueRequestSchema,
   type Issue as IssueResponse,
   listIssuesQuerySchema,
+  type OpenIssueCount as OpenIssueCountResponse,
   undoIssueStatusRequestSchema,
   updateIssueRequestSchema,
 } from '@lokibench/shared/contracts';
@@ -29,7 +30,7 @@ class UpdateIssueDto extends createZodDto(updateIssueRequestSchema) {}
 class UndoIssueStatusDto extends createZodDto(undoIssueStatusRequestSchema) {}
 
 /**
- * 이슈 만들기, 조회, 수정, 상태 되돌리기 경로를 연다. (/api/issues)
+ * 이슈 만들기, 조회, 수정, 상태 되돌리기, 열린 이슈 수 경로를 연다. (/api/issues)
  */
 @Controller('issues')
 export class IssuesController {
@@ -45,6 +46,12 @@ export class IssuesController {
   async list(@Query() query: ListIssuesQueryDto): Promise<IssueResponse[]> {
     const issues = await this.service.listByProject(query.projectId);
     return issues.map(toIssueResponse);
+  }
+
+  // :id보다 먼저 두어야 'open-counts'가 id 숫자 검사에 걸려 400이 되지 않음
+  @Get('open-counts')
+  countOpen(): Promise<OpenIssueCountResponse[]> {
+    return this.service.countOpenByProject();
   }
 
   @Get(':id')

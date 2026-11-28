@@ -3,12 +3,12 @@ import { Injectable } from '@nestjs/common';
 import { DomainError } from '@/errors/domain-error';
 import { ProjectRepository } from '@/modules/projects/project.repository';
 
-import type { CreateIssueCommand, Issue, UpdateIssueCommand } from './issue.model';
+import type { CreateIssueCommand, Issue, OpenIssueCount, UpdateIssueCommand } from './issue.model';
 import { IssueRepository } from './issue.repository';
 import { applyIssueUpdate, undoIssueStatus } from './issue.rules';
 
 /**
- * 이슈 만들기, 조회, 수정, 상태 되돌리기를 처리한다.
+ * 이슈 만들기, 조회, 수정, 상태 되돌리기, 열린 이슈 수 조회를 처리한다.
  */
 @Injectable()
 export class IssuesService {
@@ -122,5 +122,14 @@ export class IssuesService {
    */
   listByProject(projectId: number): Promise<Issue[]> {
     return this.repository.findByProject(projectId);
+  }
+
+  /**
+   * 프로젝트별 열린 이슈 수를 준다.
+   *
+   * @returns 열린 이슈가 1건 이상인 프로젝트의 수 (없는 프로젝트는 화면이 0으로 봄)
+   */
+  countOpenByProject(): Promise<OpenIssueCount[]> {
+    return this.repository.countOpenByProject();
   }
 }

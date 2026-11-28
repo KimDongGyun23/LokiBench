@@ -6,7 +6,7 @@ import { parseStoredInstant } from '@/database/utils/parse-stored-instant';
 import { tryParseJson } from '@/database/utils/try-parse-json';
 
 import type { IssueEntity } from './issue.entity';
-import type { Issue, IssueEvent, NewStatusEvent } from './issue.model';
+import type { Issue, IssueEvent, NewStatusEvent, OpenIssueCount } from './issue.model';
 import type { IssueEventEntity } from './issue-event.entity';
 
 // 상태 변경 이력의 payload 모양 (이전 상태와 새 상태)
@@ -87,6 +87,31 @@ export function toIssueEventModel(entity: IssueEventEntity): IssueEvent {
   }
 
   return { ...base, kind: entity.kind, from: payload.data.from, to: payload.data.to };
+}
+
+// 프로젝트별로 세어 읽은 행의 모양 (엔티티가 아니라 TypeORM이 모양을 보장하지 않음)
+const openIssueCountRowSchema = z.object({
+  projectId: z.number().int().positive(),
+  count: z.number().int().positive(),
+});
+
+/**
+ * 프로젝트별로 세어 읽은 행을 도메인 열린 이슈 수로 바꾼다.
+ *
+ * - 집계 결과는 엔티티가 아니라 타입 검사 없이 오므로 여기서 모양을 검사하고, 어긋난 행은 오류로 던진다
+ *
+ * @param row DB에서 세어 읽은 행
+ * @returns service가 다루는 프로젝트 하나의 열린 이슈 수
+ */
+export function toOpenIssueCountModel(row: unknown): OpenIssueCount {
+  const parsed = openIssueCountRowSchema.safeParse(row);
+
+  // 어느 행이 어긋났는지 알림
+  if (!parsed.success) {
+    throw new Error(`열린 이슈 수 행 형식이 잘못됨: ${JSON.stringify(row)}`);
+  }
+
+  return parsed.data;
 }
 
 /**

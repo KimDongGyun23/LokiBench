@@ -119,6 +119,13 @@ export class TypeOrmIssueRepository extends IssueRepository {
     return entity && toIssueModel(entity);
   }
 
+  async findByProject(projectId: number): Promise<Issue[]> {
+    const entities = await this.read((manager) =>
+      manager.find(IssueEntity, { where: { projectId }, order: { number: 'ASC' } }),
+    );
+    return entities.map(toIssueModel);
+  }
+
   async findLastEvents(issueId: number, limit: number): Promise<IssueEvent[]> {
     const entities = await this.read((manager) =>
       manager.find(IssueEventEntity, { where: { issueId }, order: { id: 'DESC' }, take: limit }),

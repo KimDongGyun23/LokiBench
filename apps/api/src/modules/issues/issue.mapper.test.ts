@@ -1,5 +1,12 @@
+import { issueSchema } from '@lokibench/shared/contracts';
+
 import type { IssueEntity } from './issue.entity';
-import { toIssueEntityUpdate, toIssueEventModel, toIssueModel } from './issue.mapper';
+import {
+  toIssueEntityUpdate,
+  toIssueEventModel,
+  toIssueModel,
+  toIssueResponse,
+} from './issue.mapper';
 import type { IssueEventEntity } from './issue-event.entity';
 
 // DB에서 읽은 닫힌 이슈 행
@@ -135,5 +142,40 @@ describe('이슈 UPDATE 칸', () => {
       version: 4,
       closedAt: '2026-11-22T09:05:00.000Z',
     });
+  });
+});
+
+describe('이슈 응답 모양', () => {
+  test('JSON에는 날짜 타입이 없으므로 시각을 계약의 ISO 문자열로 바꾸고 마감 날짜는 그대로 둔다', () => {
+    // Given: DB 행을 도메인으로 읽은 닫힌 이슈
+    const issue = toIssueModel(CLOSED_ENTITY);
+
+    // When
+    const response = toIssueResponse(issue);
+
+    // Then: 계약 스키마를 통과하고 DB에 있던 글자와 같음
+    expect(issueSchema.parse(response)).toEqual({
+      id: 7,
+      projectId: 1,
+      number: 3,
+      title: '읽은 책 별점 입력',
+      due: '2026-11-30',
+      status: 'DONE',
+      statusChangedAt: '2026-11-22T09:05:00.000Z',
+      version: 4,
+      createdAt: '2026-11-22T09:00:00.000Z',
+      closedAt: '2026-11-22T09:05:00.000Z',
+    });
+  });
+
+  test('열린 이슈가 닫힌 것으로 보이지 않도록 닫은 시각이 없으면 null로 준다', () => {
+    // Given
+    const issue = toIssueModel({ ...CLOSED_ENTITY, status: 'TODO', closedAt: null });
+
+    // When
+    const response = toIssueResponse(issue);
+
+    // Then
+    expect(response.closedAt).toBeNull();
   });
 });

@@ -74,3 +74,10 @@ export interface SaveIssueUndoInput {
   expectedVersion: number;
   removedEventId: number;
 }
+
+// controller가 service에 새 이슈를 요청할 때 넘기는 값 (마감이 없으면 비워 둠)
+export interface CreateIssueCommand {
+  projectId: number;
+  title: string;
+  due?: string | null;
+}

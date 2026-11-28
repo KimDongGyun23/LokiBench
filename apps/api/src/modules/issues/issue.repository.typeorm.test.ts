@@ -421,6 +421,36 @@ describe('이슈 읽기', () => {
   });
 });
 
+describe('프로젝트의 이슈 목록 읽기', () => {
+  test('목록이 번호 순서를 지키도록 그 프로젝트의 이슈만 번호 오름차순으로 준다', async () => {
+    // Given: 행을 넣은 순서와 번호 순서가 다르고, 다른 프로젝트의 이슈가 섞임
+    await dataSource.query(
+      `INSERT INTO projects (name, color, created_at)
+       VALUES ('가계부', 'teal', '2026-11-01T00:00:00.000Z')`,
+    );
+    await dataSource.query(
+      `INSERT INTO issues (project_id, number, title, status, status_changed_at, version, created_at)
+       VALUES (1, 5, '독서 목표 설정', 'TODO', '${NOW.toISOString()}', 1, '${NOW.toISOString()}'),
+              (2, 3, '이번 달 영수증 정리', 'TODO', '${NOW.toISOString()}', 1, '${NOW.toISOString()}'),
+              (1, 2, '읽은 책 별점 입력', 'TODO', '${NOW.toISOString()}', 1, '${NOW.toISOString()}')`,
+    );
+
+    // When
+    const issues = await repository.findByProject(1);
+
+    // Then
+    expect(issues.map((issue) => issue.number)).toEqual([2, 5]);
+  });
+
+  test('없는 프로젝트를 오류 없이 다루도록 이슈가 없으면 빈 배열을 준다', async () => {
+    // When
+    const issues = await repository.findByProject(999);
+
+    // Then
+    expect(issues).toEqual([]);
+  });
+});
+
 describe('이슈 이력 읽기', () => {
   test('되돌리기가 마지막 이력부터 보도록 최신 순으로 정한 개수만 준다', async () => {
     // Given: 만든 이력 뒤에 상태 변경 이력 둘을 직접 넣음

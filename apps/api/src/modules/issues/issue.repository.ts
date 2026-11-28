@@ -26,5 +26,8 @@ export abstract class IssueRepository {
 
   abstract findById(id: number): Promise<Issue | null>;
 
+  // 번호 오름차순으로 줌 (없는 프로젝트면 빈 배열)
+  abstract findByProject(projectId: number): Promise<Issue[]>;
+
   abstract findLastEvents(issueId: number, limit: number): Promise<IssueEvent[]>;
 }

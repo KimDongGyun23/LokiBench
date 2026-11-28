@@ -1,3 +1,4 @@
+import type { Issue as IssueResponse } from '@lokibench/shared/contracts';
 import { CLOSED_ISSUE_STATUS, ISSUE_STATUSES } from '@lokibench/shared/values';
 import { z } from 'zod';
 
@@ -130,5 +131,28 @@ export function toStatusEventEntity({
     at: event.at.toISOString(),
     kind: 'STATUS',
     payload: JSON.stringify({ from: event.from, to: event.to }),
+  };
+}
+
+/**
+ * 도메인 이슈를 계약의 응답 모양으로 바꾼다.
+ *
+ * - JSON에는 날짜 타입이 없어서 시각을 UTC ISO 문자열로 바꾼다
+ *
+ * @param issue 도메인 이슈
+ * @returns 응답에 그대로 실을 이슈
+ */
+export function toIssueResponse(issue: Issue): IssueResponse {
+  return {
+    id: issue.id,
+    projectId: issue.projectId,
+    number: issue.number,
+    title: issue.title,
+    due: issue.due,
+    status: issue.status,
+    statusChangedAt: issue.statusChangedAt.toISOString(),
+    version: issue.version,
+    createdAt: issue.createdAt.toISOString(),
+    closedAt: issue.closedAt?.toISOString() ?? null,
   };
 }

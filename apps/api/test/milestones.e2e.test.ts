@@ -445,6 +445,24 @@ describe('마일스톤 삭제와 되살리기', () => {
     expect(milestoneSchema.parse(second.body)).toEqual(milestone);
   });
 
+  test('지운 마일스톤이 낡은 화면에서 다시 살아나지 않도록 지운 뒤에는 수정, 닫기, 재오픈, 삭제가 모두 404다', async () => {
+    // Given: 닫았다가 지운 마일스톤 (재오픈이 무언가를 바꿀 수 있는 상태)
+    const milestone = await addMilestone((await addProject('가계부')).id);
+    await request(server).post(`/api/milestones/${milestone.id}/close`);
+    await request(server).delete(`/api/milestones/${milestone.id}`);
+
+    // When
+    const responses = await Promise.all([
+      request(server).put(`/api/milestones/${milestone.id}`).send(EMPTY_FIELDS),
+      request(server).post(`/api/milestones/${milestone.id}/close`),
+      request(server).post(`/api/milestones/${milestone.id}/reopen`),
+      request(server).delete(`/api/milestones/${milestone.id}`),
+    ]);
+
+    // Then
+    expect(responses.map(({ status }) => status)).toEqual([404, 404, 404, 404]);
+  });
+
   test('없는 마일스톤은 닫고, 열고, 지우고, 되살릴 수 없도록 모두 404를 준다', async () => {
     const responses = await Promise.all([
       request(server).post('/api/milestones/999/close'),

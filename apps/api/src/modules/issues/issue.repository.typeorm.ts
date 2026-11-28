@@ -37,7 +37,6 @@ export class TypeOrmIssueRepository extends IssueRepository {
     super();
   }
 
-  // 번호 카운터를 올리고 이슈와 만든 이력을 한 트랜잭션으로 저장함
   async create(input: CreateIssueInput): Promise<Issue> {
     const saveNewIssue = async (manager: EntityManager): Promise<Issue> => {
       const number = await this.incrementIssueCounter(manager);
@@ -68,7 +67,6 @@ export class TypeOrmIssueRepository extends IssueRepository {
     return this.write(saveNewIssue);
   }
 
-  // 바뀐 이슈와 상태 변경 이력을 한 트랜잭션으로 저장함 (기대한 version의 행이 없으면 null)
   async saveChange(input: SaveIssueChangeInput): Promise<Issue | null> {
     const { issue, expectedVersion, event } = input;
 
@@ -90,7 +88,6 @@ export class TypeOrmIssueRepository extends IssueRepository {
     return this.write(saveIssueChange);
   }
 
-  // 되돌린 이슈를 저장하고 되돌린 상태 변경 이력을 한 트랜잭션으로 지움 (기대한 version의 행이 없으면 null)
   async saveUndo(input: SaveIssueUndoInput): Promise<Issue | null> {
     const { issue, expectedVersion, removedEventId } = input;
 
@@ -117,13 +114,11 @@ export class TypeOrmIssueRepository extends IssueRepository {
     return this.write(saveIssueUndo);
   }
 
-  // id로 이슈 하나를 찾음 (없으면 null)
   async findById(id: number): Promise<Issue | null> {
     const entity = await this.read((manager) => manager.findOneBy(IssueEntity, { id }));
     return entity && toIssueModel(entity);
   }
 
-  // 이슈의 이력을 최신 순으로 limit개까지 찾음
   async findLastEvents(issueId: number, limit: number): Promise<IssueEvent[]> {
     const entities = await this.read((manager) =>
       manager.find(IssueEventEntity, { where: { issueId }, order: { id: 'DESC' }, take: limit }),

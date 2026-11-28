@@ -19,6 +19,12 @@ describe('공개 오류 코드', () => {
       'ISSUE_CLOSED',
       'ISSUE_UNDO_NOTHING',
       'ISSUE_UNDO_EXPIRED',
+      'MILESTONE_NOT_FOUND',
+      'MILESTONE_TITLE_TAKEN',
+      'MILESTONE_HAS_OPEN_ISSUES',
+      'MILESTONE_HAS_ISSUES',
+      'MILESTONE_CLOSED',
+      'MILESTONE_PROJECT_MISMATCH',
       'INTERNAL',
     ]);
   });

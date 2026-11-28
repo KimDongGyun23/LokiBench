@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { createDataSourceOptions } from './database/data-source-options';
 import { HealthController } from './health/health.controller';
 import { IssuesModule } from './modules/issues/issues.module';
+import { MilestonesModule } from './modules/milestones/milestones.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 
 interface AppModuleOptions {
@@ -28,6 +29,7 @@ export class AppModule {
         TypeOrmModule.forRoot({ ...createDataSourceOptions(databasePath), retryAttempts: 0 }),
         ProjectsModule,
         IssuesModule,
+        MilestonesModule,
       ],
       controllers: [HealthController],
     };

@@ -362,3 +362,47 @@ describe('마일스톤에 든 이슈의 상태', () => {
     expect(result.issue).toMatchObject({ status: 'TODO', milestoneId: 2 });
   });
 });
+
+describe('이슈의 마일스톤 바꾸기', () => {
+  test('마일스톤 바꾸기도 수정으로 세어지도록 열린 이슈의 마일스톤을 바꾸면 version을 올리고 이력은 남기지 않는다', () => {
+    // When
+    const result = applyIssueUpdate(openIssue(), { milestoneId: 2 }, NOW);
+
+    // Then
+    expect(result).toEqual({
+      kind: 'changed',
+      issue: { ...openIssue(), milestoneId: 2, version: 4 },
+      event: null,
+    });
+  });
+
+  test('미지정으로 돌릴 수 있도록 마일스톤 null은 마일스톤에서 빼는 것으로 바꾼다', () => {
+    // Given
+    const issue = { ...openIssue(), milestoneId: 2 };
+
+    // When
+    const result = applyIssueUpdate(issue, { milestoneId: null }, NOW);
+
+    // Then
+    expect(result).toMatchObject({ kind: 'changed', issue: { milestoneId: null } });
+  });
+
+  test('끝난 일이 다른 묶음으로 옮겨지지 않도록 닫힌 이슈에 다른 마일스톤을 보내면 거부한다', () => {
+    // When
+    const attempt = () => applyIssueUpdate(closedIssue(), { milestoneId: 2 }, NOW);
+
+    // Then
+    expect(attempt).toThrow(expect.objectContaining({ code: 'ISSUE_CLOSED' }));
+  });
+
+  test('화면이 모든 칸을 함께 보내도 되도록 닫힌 이슈에 지금과 같은 마일스톤을 보내면 바뀐 것이 없다고 답한다', () => {
+    // Given
+    const issue = { ...closedIssue(), milestoneId: 2 };
+
+    // When
+    const result = applyIssueUpdate(issue, { milestoneId: 2 }, NOW);
+
+    // Then
+    expect(result).toEqual({ kind: 'unchanged' });
+  });
+});

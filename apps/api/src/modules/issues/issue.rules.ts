@@ -17,7 +17,7 @@ export type IssueUpdateResult =
 /**
  * 수정 요청을 이슈에 적용해 저장할 이슈와 남길 이력을 정한다.
  *
- * - 닫힌 이슈는 상태만 바꿀 수 있고, 지금과 다른 제목이나 마감이 섞여 있으면 요청을 통째로 거부한다
+ * - 닫힌 이슈는 상태만 바꿀 수 있고, 지금과 다른 제목, 마감, 마일스톤이 섞여 있으면 요청을 통째로 거부한다
  * - 닫힌 이슈는 TODO로만 다시 열 수 있고, 열린 이슈는 어느 상태로든 옮길 수 있다
  * - 지금과 같은 값만 들어 있으면 바뀐 것이 없다고 답해 version이 오르지 않게 한다
  *
@@ -34,13 +34,15 @@ export function applyIssueUpdate(
 ): IssueUpdateResult {
   const title = changes.title ?? issue.title;
   const due = changes.due === undefined ? issue.due : changes.due;
+  const milestoneId = changes.milestoneId === undefined ? issue.milestoneId : changes.milestoneId;
   const status = changes.status ?? issue.status;
 
-  const isContentChanged = title !== issue.title || due !== issue.due;
+  const isContentChanged =
+    title !== issue.title || due !== issue.due || milestoneId !== issue.milestoneId;
   const isStatusChanged = status !== issue.status;
   const isClosed = issue.status === CLOSED_ISSUE_STATUS;
 
-  // 닫힌 이슈는 제목과 마감을 바꿀 수 없음
+  // 닫힌 이슈는 제목, 마감, 마일스톤을 바꿀 수 없음
   if (isClosed && isContentChanged) throw new DomainError('ISSUE_CLOSED');
 
   // 닫힌 이슈는 TODO로만 다시 열 수 있음
@@ -50,15 +52,15 @@ export function applyIssueUpdate(
   // 지금과 같은 값만 왔으면 아무것도 저장하지 않음
   if (!isContentChanged && !isStatusChanged) return { kind: 'unchanged' };
 
-  // 제목이나 마감만 바뀌면 이력을 남기지 않음
+  // 제목, 마감, 마일스톤만 바뀌면 이력을 남기지 않음
   const version = issue.version + 1;
   if (!isStatusChanged) {
-    return { kind: 'changed', issue: { ...issue, title, due, version }, event: null };
+    return { kind: 'changed', issue: { ...issue, title, due, milestoneId, version }, event: null };
   }
 
   return {
     kind: 'changed',
-    issue: withStatus({ ...issue, title, due, version }, status, now),
+    issue: withStatus({ ...issue, title, due, milestoneId, version }, status, now),
     event: { at: now, from: issue.status, to: status },
   };
 }

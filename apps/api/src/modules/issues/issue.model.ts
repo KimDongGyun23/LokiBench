@@ -48,10 +48,12 @@ export interface NewStatusEvent {
   to: IssueStatus;
 }
 
-// 이슈에서 바꾸려는 칸
+// 이슈에서 바꾸려는 칸 (키가 없으면 그 칸은 그대로 둠)
 export interface IssueChanges {
   title?: string;
   due?: string | null;
+  // null이면 마일스톤에서 뺌
+  milestoneId?: number | null;
   status?: IssueStatus;
 }
 

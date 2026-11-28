@@ -3,6 +3,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource, type EntityManager } from 'typeorm';
 
+import { runExclusive } from '@/database/utils/run-exclusive';
+
 import { IssueEntity } from './issue.entity';
 import {
   toIssueEntityUpdate,
@@ -27,14 +29,10 @@ const ISSUE_COUNTER_ID = 1;
 /**
  * sqlite에 이슈와 이슈 이력을 읽고 쓰는 repository 구현체다.
  *
- * - 쓰기는 트랜잭션으로 묶고 한 번에 하나씩만 실행한다
- *   (DB 연결 하나를 모든 요청이 함께 써서, 겹쳐 시작한 트랜잭션은 서로 격리되지 않는다)
+ * - 읽기와 쓰기 모두 runExclusive로 같은 연결의 다른 작업이 끝난 뒤에 실행한다
  */
 @Injectable()
 export class TypeOrmIssueRepository extends IssueRepository {
-  // 앞 쓰기가 끝난 뒤에 다음 쓰기를 시작하게 잇는 줄
-  private writeQueue: Promise<unknown> = Promise.resolve();
-
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {
     super();
   }
@@ -121,17 +119,15 @@ export class TypeOrmIssueRepository extends IssueRepository {
 
   // id로 이슈 하나를 찾음 (없으면 null)
   async findById(id: number): Promise<Issue | null> {
-    const entity = await this.dataSource.manager.findOneBy(IssueEntity, { id });
+    const entity = await this.read((manager) => manager.findOneBy(IssueEntity, { id }));
     return entity && toIssueModel(entity);
   }
 
   // 이슈의 이력을 최신 순으로 limit개까지 찾음
   async findLastEvents(issueId: number, limit: number): Promise<IssueEvent[]> {
-    const entities = await this.dataSource.manager.find(IssueEventEntity, {
-      where: { issueId },
-      order: { id: 'DESC' },
-      take: limit,
-    });
+    const entities = await this.read((manager) =>
+      manager.find(IssueEventEntity, { where: { issueId }, order: { id: 'DESC' }, take: limit }),
+    );
     return entities.map(toIssueEventModel);
   }
 
@@ -165,10 +161,16 @@ export class TypeOrmIssueRepository extends IssueRepository {
     return counter.value;
   }
 
-  // 트랜잭션으로 묶은 쓰기를 줄 끝에 이어 붙임 (앞 쓰기가 실패해도 다음 쓰기는 돌도록 줄에는 실패를 삼킨 Promise를 남김)
+  // 읽기를 같은 연결의 작업 줄 끝에 이어 붙임
+  private read<T>(work: (manager: EntityManager) => Promise<T>): Promise<T> {
+    return runExclusive({ dataSource: this.dataSource, work: () => work(this.dataSource.manager) });
+  }
+
+  // 트랜잭션으로 묶은 쓰기를 같은 연결의 작업 줄 끝에 이어 붙임
   private write<T>(work: (manager: EntityManager) => Promise<T>): Promise<T> {
-    const result = this.writeQueue.then(() => this.dataSource.transaction(work));
-    this.writeQueue = result.catch(() => undefined);
-    return result;
+    return runExclusive({
+      dataSource: this.dataSource,
+      work: () => this.dataSource.transaction(work),
+    });
   }
 }

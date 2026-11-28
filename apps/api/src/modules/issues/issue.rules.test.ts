@@ -332,3 +332,33 @@ describe('상태 되돌리기', () => {
     expect(attemptAfterStatus).toThrow('되돌릴 이력이 앞 이력과 이어지지 않음: issueId=1');
   });
 });
+
+describe('마일스톤에 든 이슈의 상태', () => {
+  test('상태를 바꿔도 이슈가 마일스톤에서 빠지지 않도록 닫으면 마일스톤을 그대로 둔다', () => {
+    // Given: 마일스톤 2에 든 열린 이슈
+    const issue = { ...openIssue('IN_PROGRESS'), milestoneId: 2 };
+
+    // When
+    const result = applyIssueUpdate(issue, { status: 'DONE' }, NOW);
+
+    // Then
+    expect(result).toMatchObject({ kind: 'changed', issue: { status: 'DONE', milestoneId: 2 } });
+  });
+
+  test('되돌려도 이슈가 마일스톤에서 빠지지 않도록 닫은 것을 되돌리면 마일스톤을 그대로 둔다', () => {
+    // Given: 마일스톤 2에 든 채 CHANGED_AT에 TODO에서 DONE으로 닫힌 이슈
+    const issue = {
+      ...closedIssue(),
+      milestoneId: 2,
+      statusChangedAt: CHANGED_AT,
+      closedAt: CHANGED_AT,
+    };
+    const events = [statusEvent(2, CHANGED_AT, 'TODO', 'DONE'), createdEvent()];
+
+    // When
+    const result = undoIssueStatus(issue, events, NOW);
+
+    // Then
+    expect(result.issue).toMatchObject({ status: 'TODO', milestoneId: 2 });
+  });
+});

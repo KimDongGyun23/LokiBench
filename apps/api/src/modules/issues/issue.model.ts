@@ -48,10 +48,12 @@ export interface NewStatusEvent {
   to: IssueStatus;
 }
 
-// 이슈에서 바꾸려는 칸
+// 이슈에서 바꾸려는 칸 (키가 없으면 그 칸은 그대로 둠)
 export interface IssueChanges {
   title?: string;
   due?: string | null;
+  // null이면 마일스톤에서 뺌
+  milestoneId?: number | null;
   status?: IssueStatus;
 }
 
@@ -60,6 +62,7 @@ export interface CreateIssueInput {
   projectId: number;
   title: string;
   due: string | null;
+  milestoneId: number | null;
   now: Date;
 }
 
@@ -77,11 +80,12 @@ export interface SaveIssueUndoInput {
   removedEventId: number;
 }
 
-// controller가 service에 새 이슈를 요청할 때 넘기는 값 (마감이 없으면 비워 둠)
+// controller가 service에 새 이슈를 요청할 때 넘기는 값 (마감과 마일스톤이 없으면 비워 둠)
 export interface CreateIssueCommand {
   projectId: number;
   title: string;
   due?: string | null;
+  milestoneId?: number | null;
 }
 
 // controller가 service에 이슈 수정을 요청할 때 넘기는 값 (version은 화면이 본 이슈의 version)

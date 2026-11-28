@@ -11,7 +11,6 @@ import {
 } from '@lokibench/shared/contracts';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import type { DataSource } from 'typeorm';
 import { z } from 'zod';
 
 import { createTestApp } from './create-test-app';
@@ -28,11 +27,10 @@ const EMPTY_FIELDS: UpdateMilestoneRequest = {
 };
 
 let app: INestApplication;
-let dataSource: DataSource;
 let server: Server;
 
 beforeEach(async () => {
-  ({ app, dataSource, server } = await createTestApp());
+  ({ app, server } = await createTestApp());
 });
 
 afterEach(async () => {
@@ -55,7 +53,7 @@ async function addMilestone(projectId: number, fields: Partial<UpdateMilestoneRe
   return milestoneSchema.parse(response.body);
 }
 
-// 마일스톤에 이슈를 하나 넣음 (이슈 API가 마일스톤을 받기 전이라 열만 직접 채움)
+// 마일스톤에 든 이슈를 하나 만들고, done이면 DONE으로 닫음
 async function addIssueInMilestone({
   projectId,
   milestoneId,
@@ -67,20 +65,14 @@ async function addIssueInMilestone({
 }) {
   const created = await request(server)
     .post('/api/issues')
-    .send({ projectId, title: '영수증 정리' });
-  let issue = issueSchema.parse(created.body);
-  await dataSource.query(`UPDATE issues SET milestone_id = ? WHERE id = ?`, [
-    milestoneId,
-    issue.id,
-  ]);
+    .send({ projectId, title: '영수증 정리', milestoneId });
+  const issue = issueSchema.parse(created.body);
+  if (!done) return issue;
 
-  if (done) {
-    const patched = await request(server)
-      .patch(`/api/issues/${issue.id}`)
-      .send({ version: issue.version, status: 'DONE' });
-    issue = issueSchema.parse(patched.body);
-  }
-  return issue;
+  const patched = await request(server)
+    .patch(`/api/issues/${issue.id}`)
+    .send({ version: issue.version, status: 'DONE' });
+  return issueSchema.parse(patched.body);
 }
 
 // 오류 응답을 계약 모양으로 파싱함

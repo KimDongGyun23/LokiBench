@@ -3,6 +3,7 @@ import type { Server } from 'node:net';
 import {
   errorResponseSchema,
   issueSchema,
+  milestoneSchema,
   openIssueCountSchema,
   projectSchema,
 } from '@lokibench/shared/contracts';
@@ -723,5 +724,212 @@ describe('열린 이슈 수', () => {
 
     // Then
     expect(await readOpenCounts()).toEqual([]);
+  });
+});
+
+describe('이슈의 마일스톤', () => {
+  // 프로젝트에 빈 칸의 마일스톤을 만들고 계약 모양인지 확인한 마일스톤을 돌려줌
+  async function addMilestone(projectId: number, title = '12월 정리') {
+    const response = await request(server).post('/api/milestones').send({
+      projectId,
+      title,
+      startDate: null,
+      due: null,
+      background: '',
+      solution: '',
+      expectedEffect: '',
+      memo: '',
+    });
+    expect(response.status).toBe(201);
+    return milestoneSchema.parse(response.body);
+  }
+
+  // 마일스톤을 닫음 (닫을 수 있는 상태여야 함)
+  async function closeMilestone(milestoneId: number) {
+    const response = await request(server).post(`/api/milestones/${milestoneId}/close`);
+    expect(response.status).toBe(200);
+  }
+
+  // 마일스톤에 든 이슈를 만듦
+  function postIssueInMilestone(projectId: number, milestoneId: number) {
+    return request(server)
+      .post('/api/issues')
+      .send({ projectId, title: '영수증 정리', milestoneId });
+  }
+
+  // 마일스톤에 든 이슈를 만들고 DONE으로 닫음
+  async function addDoneIssueInMilestone(projectId: number, milestoneId: number) {
+    const created = issueSchema.parse((await postIssueInMilestone(projectId, milestoneId)).body);
+    return changeIssue(created.id, { version: created.version, status: 'DONE' });
+  }
+
+  test('만들 때 마일스톤을 고를 수 있도록 열린 마일스톤으로 만들면 그 마일스톤에 넣는다', async () => {
+    // Given
+    const project = await addProject('가계부');
+    const milestone = await addMilestone(project.id);
+
+    // When
+    const response = await postIssueInMilestone(project.id, milestone.id);
+
+    // Then
+    expect(response.status).toBe(201);
+    expect(issueSchema.parse(response.body)).toMatchObject({
+      milestoneId: milestone.id,
+      version: 1,
+    });
+  });
+
+  test('닫힌 마일스톤에 할 일이 생기지 않도록 닫힌 마일스톤으로 만들거나 옮기면 MILESTONE_CLOSED를 준다', async () => {
+    // Given
+    const project = await addProject('가계부');
+    const closed = await addMilestone(project.id);
+    await closeMilestone(closed.id);
+    const issue = await addIssue(project.id, '영수증 정리');
+
+    // When
+    const created = await postIssueInMilestone(project.id, closed.id);
+    const moved = await patchIssue(issue.id, { version: issue.version, milestoneId: closed.id });
+
+    // Then
+    expect([created.status, moved.status]).toEqual([409, 409]);
+    expect(errorResponseSchema.parse(created.body).code).toBe('MILESTONE_CLOSED');
+    expect(errorResponseSchema.parse(moved.body).code).toBe('MILESTONE_CLOSED');
+  });
+
+  test('번호에 빈 곳이 생기지 않도록 닫힌 마일스톤으로 만들다 거부되면 번호도 쓰지 않는다', async () => {
+    // Given
+    const project = await addProject('가계부');
+    const closed = await addMilestone(project.id);
+    await closeMilestone(closed.id);
+
+    // When
+    await postIssueInMilestone(project.id, closed.id);
+    const next = await addIssue(project.id, '영수증 정리');
+
+    // Then
+    expect(next.number).toBe(1);
+  });
+
+  test('프로젝트 경계가 섞이지 않도록 다른 프로젝트의 마일스톤으로 만들면 MILESTONE_PROJECT_MISMATCH를 준다', async () => {
+    // Given
+    const project = await addProject('가계부');
+    const other = await addProject('블로그');
+    const milestone = await addMilestone(other.id);
+
+    // When
+    const response = await postIssueInMilestone(project.id, milestone.id);
+
+    // Then
+    expect(response.status).toBe(409);
+    expect(errorResponseSchema.parse(response.body).code).toBe('MILESTONE_PROJECT_MISMATCH');
+  });
+
+  test('없거나 지운 마일스톤에 들어가지 않도록 만들기와 옮기기 모두 MILESTONE_NOT_FOUND를 준다', async () => {
+    // Given
+    const project = await addProject('가계부');
+    const deleted = await addMilestone(project.id);
+    await request(server).delete(`/api/milestones/${deleted.id}`);
+    const issue = await addIssue(project.id, '영수증 정리');
+
+    // When
+    const responses = [
+      await postIssueInMilestone(project.id, 999),
+      await patchIssue(issue.id, { version: issue.version, milestoneId: 999 }),
+      await postIssueInMilestone(project.id, deleted.id),
+      await patchIssue(issue.id, { version: issue.version, milestoneId: deleted.id }),
+    ];
+
+    // Then
+    expect(responses.map(({ status }) => status)).toEqual([404, 404, 404, 404]);
+    for (const response of responses) {
+      expect(errorResponseSchema.parse(response.body).code).toBe('MILESTONE_NOT_FOUND');
+    }
+  });
+
+  test('미지정으로 돌릴 수 있도록 milestoneId에 null을 보내면 빼고 version만 올리며 이력은 남기지 않는다', async () => {
+    // Given
+    const project = await addProject('가계부');
+    const milestone = await addMilestone(project.id);
+    const issue = issueSchema.parse((await postIssueInMilestone(project.id, milestone.id)).body);
+
+    // When
+    const changed = await changeIssue(issue.id, { version: issue.version, milestoneId: null });
+
+    // Then
+    expect(changed).toMatchObject({ milestoneId: null, version: issue.version + 1 });
+    expect(await readEventKinds(issue.id)).toEqual(['CREATED']);
+  });
+
+  test('닫힌 마일스톤에 할 일이 생기지 않도록 그 마일스톤의 닫힌 이슈를 다시 열면 MILESTONE_CLOSED를 주고 그대로 둔다', async () => {
+    // Given
+    const project = await addProject('가계부');
+    const milestone = await addMilestone(project.id);
+    const done = await addDoneIssueInMilestone(project.id, milestone.id);
+    await closeMilestone(milestone.id);
+
+    // When
+    const response = await patchIssue(done.id, { version: done.version, status: 'TODO' });
+
+    // Then
+    expect(response.status).toBe(409);
+    expect(errorResponseSchema.parse(response.body).code).toBe('MILESTONE_CLOSED');
+    const after = issueSchema.parse((await request(server).get(`/api/issues/${done.id}`)).body);
+    expect(after).toEqual(done);
+  });
+
+  test('닫은 뒤 마일스톤을 닫았으면 되돌리기로 열린 이슈가 생기지 않도록 MILESTONE_CLOSED를 주고, 마일스톤을 다시 열면 되돌린다', async () => {
+    // Given: 이슈를 닫고 바로 마일스톤을 닫음
+    const project = await addProject('가계부');
+    const milestone = await addMilestone(project.id);
+    const done = await addDoneIssueInMilestone(project.id, milestone.id);
+    await closeMilestone(milestone.id);
+
+    // When
+    const blocked = await request(server)
+      .post(`/api/issues/${done.id}/undo-status`)
+      .send({ version: done.version });
+    await request(server).post(`/api/milestones/${milestone.id}/reopen`);
+    const undone = await request(server)
+      .post(`/api/issues/${done.id}/undo-status`)
+      .send({ version: done.version });
+
+    // Then
+    expect(blocked.status).toBe(409);
+    expect(errorResponseSchema.parse(blocked.body).code).toBe('MILESTONE_CLOSED');
+    expect(undone.status).toBe(200);
+    expect(issueSchema.parse(undone.body).status).toBe('TODO');
+  });
+
+  test('끝난 일이 다른 묶음으로 옮겨지지 않도록 닫힌 이슈의 마일스톤을 바꾸면 ISSUE_CLOSED를 준다', async () => {
+    // Given
+    const project = await addProject('가계부');
+    const milestone = await addMilestone(project.id);
+    const other = await addMilestone(project.id, '1월 정리');
+    const done = await addDoneIssueInMilestone(project.id, milestone.id);
+
+    // When
+    const response = await patchIssue(done.id, { version: done.version, milestoneId: other.id });
+
+    // Then
+    expect(response.status).toBe(409);
+    expect(errorResponseSchema.parse(response.body).code).toBe('ISSUE_CLOSED');
+  });
+
+  test('화면이 지금 값을 함께 보내도 막지 않도록 닫힌 마일스톤의 닫힌 이슈에 같은 마일스톤을 보내면 200에 version 그대로 준다', async () => {
+    // Given
+    const project = await addProject('가계부');
+    const milestone = await addMilestone(project.id);
+    const done = await addDoneIssueInMilestone(project.id, milestone.id);
+    await closeMilestone(milestone.id);
+
+    // When
+    const response = await patchIssue(done.id, {
+      version: done.version,
+      milestoneId: milestone.id,
+    });
+
+    // Then
+    expect(response.status).toBe(200);
+    expect(issueSchema.parse(response.body).version).toBe(done.version);
   });
 });

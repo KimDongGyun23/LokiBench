@@ -5,7 +5,7 @@ import {
 } from '@lokibench/shared/values';
 
 import type { ClosedIssue, IssueEvent, OpenIssue } from './issue.model';
-import { applyIssueUpdate, undoIssueStatus } from './issue.rules';
+import { applyIssueUpdate, assertIssueFitsMilestone, undoIssueStatus } from './issue.rules';
 
 const CREATED_AT = new Date('2026-11-20T09:00:00.000Z');
 const CLOSED_AT = new Date('2026-11-21T09:00:00.000Z');
@@ -360,5 +360,122 @@ describe('마일스톤에 든 이슈의 상태', () => {
 
     // Then
     expect(result.issue).toMatchObject({ status: 'TODO', milestoneId: 2 });
+  });
+});
+
+describe('이슈의 마일스톤 바꾸기', () => {
+  test('마일스톤 바꾸기도 수정으로 세어지도록 열린 이슈의 마일스톤을 바꾸면 version을 올리고 이력은 남기지 않는다', () => {
+    // When
+    const result = applyIssueUpdate(openIssue(), { milestoneId: 2 }, NOW);
+
+    // Then
+    expect(result).toEqual({
+      kind: 'changed',
+      issue: { ...openIssue(), milestoneId: 2, version: 4 },
+      event: null,
+    });
+  });
+
+  test('미지정으로 돌릴 수 있도록 마일스톤 null은 마일스톤에서 빼는 것으로 바꾼다', () => {
+    // Given
+    const issue = { ...openIssue(), milestoneId: 2 };
+
+    // When
+    const result = applyIssueUpdate(issue, { milestoneId: null }, NOW);
+
+    // Then
+    expect(result).toMatchObject({ kind: 'changed', issue: { milestoneId: null } });
+  });
+
+  test('끝난 일이 다른 묶음으로 옮겨지지 않도록 닫힌 이슈에 다른 마일스톤을 보내면 거부한다', () => {
+    // When
+    const attempt = () => applyIssueUpdate(closedIssue(), { milestoneId: 2 }, NOW);
+
+    // Then
+    expect(attempt).toThrow(expect.objectContaining({ code: 'ISSUE_CLOSED' }));
+  });
+
+  test('화면이 모든 칸을 함께 보내도 되도록 닫힌 이슈에 지금과 같은 마일스톤을 보내면 바뀐 것이 없다고 답한다', () => {
+    // Given
+    const issue = { ...closedIssue(), milestoneId: 2 };
+
+    // When
+    const result = applyIssueUpdate(issue, { milestoneId: 2 }, NOW);
+
+    // Then
+    expect(result).toEqual({ kind: 'unchanged' });
+  });
+});
+
+describe('이슈가 마일스톤에 들어가도 되는지', () => {
+  test('열린 마일스톤에는 같은 프로젝트의 이슈를 넣을 수 있다', () => {
+    // Given
+    const issue = { ...openIssue(), milestoneId: 2 };
+
+    // When
+    const attempt = () =>
+      assertIssueFitsMilestone({ issue, guard: { projectId: 1, isClosed: false } });
+
+    // Then
+    expect(attempt).not.toThrow();
+  });
+
+  test('지운 마일스톤에 이슈가 들어가지 않도록 마일스톤을 찾지 못했으면 거부한다', () => {
+    // Given
+    const issue = { ...openIssue(), milestoneId: 2 };
+
+    // When
+    const attempt = () => assertIssueFitsMilestone({ issue, guard: null });
+
+    // Then
+    expect(attempt).toThrow(expect.objectContaining({ code: 'MILESTONE_NOT_FOUND' }));
+  });
+
+  test('프로젝트 경계가 섞이지 않도록 다른 프로젝트의 마일스톤이면 거부한다', () => {
+    // Given
+    const issue = { ...openIssue(), milestoneId: 2 };
+
+    // When
+    const attempt = () =>
+      assertIssueFitsMilestone({ issue, guard: { projectId: 9, isClosed: false } });
+
+    // Then
+    expect(attempt).toThrow(expect.objectContaining({ code: 'MILESTONE_PROJECT_MISMATCH' }));
+  });
+
+  test('거부 이유가 하나로 정해지도록 다른 프로젝트의 닫힌 마일스톤이면 프로젝트가 다르다는 것으로 거부한다', () => {
+    // Given
+    const issue = { ...openIssue(), milestoneId: 2 };
+
+    // When
+    const attempt = () =>
+      assertIssueFitsMilestone({ issue, guard: { projectId: 9, isClosed: true } });
+
+    // Then
+    expect(attempt).toThrow(expect.objectContaining({ code: 'MILESTONE_PROJECT_MISMATCH' }));
+  });
+
+  test('닫힌 마일스톤에 할 일이 생기지 않도록 열린 이슈를 닫힌 마일스톤에 두면 거부한다', () => {
+    // Given: 새로 만들거나, 다시 열거나, 닫은 것을 되돌린 열린 이슈
+    const issue = { ...openIssue('TODO'), milestoneId: 2 };
+
+    // When
+    const attempt = () =>
+      assertIssueFitsMilestone({ issue, guard: { projectId: 1, isClosed: true } });
+
+    // Then
+    expect(attempt).toThrow(expect.objectContaining({ code: 'MILESTONE_CLOSED' }));
+  });
+
+  test('닫힌 마일스톤의 끝난 이슈는 그대로 둘 수 있도록 닫힌 이슈는 닫힌 마일스톤에 있어도 허용한다', () => {
+    // Given
+    const issue = { ...closedIssue(), milestoneId: 2 };
+
+    // When
+    const attempt = () =>
+      assertIssueFitsMilestone({ issue, guard: { projectId: 1, isClosed: true } });
+
+    // Then
+    expect(attempt).not.toThrow();
   });
 });

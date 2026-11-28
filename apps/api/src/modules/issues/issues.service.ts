@@ -20,9 +20,9 @@ export class IssuesService {
   /**
    * 프로젝트에 새 이슈를 만든다.
    *
-   * @param command 이슈를 만들 프로젝트, 공백이 지워진 제목, 마감
+   * @param command 이슈를 만들 프로젝트, 공백이 지워진 제목, 마감, 마일스톤
    * @returns 저장된 이슈
-   * @throws {DomainError} PROJECT_NOT_FOUND
+   * @throws {DomainError} PROJECT_NOT_FOUND, MILESTONE_NOT_FOUND, MILESTONE_PROJECT_MISMATCH, MILESTONE_CLOSED
    */
   async create(command: CreateIssueCommand): Promise<Issue> {
     // 주인 없는 이슈가 생기지 않도록 프로젝트부터 확인함
@@ -33,6 +33,7 @@ export class IssuesService {
       projectId: command.projectId,
       title: command.title,
       due: command.due ?? null,
+      milestoneId: command.milestoneId ?? null,
       now: new Date(),
     });
   }

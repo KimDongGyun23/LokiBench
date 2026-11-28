@@ -52,3 +52,11 @@ export interface IssueChanges {
   due?: string | null;
   status?: IssueStatus;
 }
+
+// service가 repository에 새 이슈를 만들 때 넘기는 값
+export interface CreateIssueInput {
+  projectId: number;
+  title: string;
+  due: string | null;
+  now: Date;
+}

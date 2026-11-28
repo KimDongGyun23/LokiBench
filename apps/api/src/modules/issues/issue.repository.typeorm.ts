@@ -10,7 +10,13 @@ import {
   toIssueModel,
   toStatusEventEntity,
 } from './issue.mapper';
-import type { CreateIssueInput, Issue, IssueEvent, SaveIssueChangeInput } from './issue.model';
+import type {
+  CreateIssueInput,
+  Issue,
+  IssueEvent,
+  SaveIssueChangeInput,
+  SaveIssueUndoInput,
+} from './issue.model';
 import { IssueRepository } from './issue.repository';
 import { IssueCounterEntity } from './issue-counter.entity';
 import { IssueEventEntity } from './issue-event.entity';
@@ -84,6 +90,32 @@ export class TypeOrmIssueRepository extends IssueRepository {
     };
 
     return this.write(saveIssueChange);
+  }
+
+  // 되돌린 이슈를 저장하고 되돌린 상태 변경 이력을 한 트랜잭션으로 지움 (기대한 version의 행이 없으면 null)
+  async saveUndo(input: SaveIssueUndoInput): Promise<Issue | null> {
+    const { issue, expectedVersion, removedEventId } = input;
+
+    const saveIssueUndo = async (manager: EntityManager): Promise<Issue | null> => {
+      const isUpdated = await this.updateIfVersionMatches({ manager, issue, expectedVersion });
+
+      // 그사이 다른 수정이 version을 올렸으면 아무것도 적지 않음
+      if (!isUpdated) return null;
+
+      // 지울 이력이 없으면 이슈만 바뀌지 않도록 던져서 트랜잭션을 되돌림
+      const result = await manager.delete(IssueEventEntity, {
+        id: removedEventId,
+        issueId: issue.id,
+      });
+      if (result.affected !== 1) {
+        throw new Error(`지울 이슈 이력이 없음: issueId=${issue.id}, eventId=${removedEventId}`);
+      }
+
+      const saved = await manager.findOneByOrFail(IssueEntity, { id: issue.id });
+      return toIssueModel(saved);
+    };
+
+    return this.write(saveIssueUndo);
   }
 
   // id로 이슈 하나를 찾음 (없으면 null)

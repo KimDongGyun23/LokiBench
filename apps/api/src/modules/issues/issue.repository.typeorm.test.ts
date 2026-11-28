@@ -2,9 +2,9 @@ import { DataSource } from 'typeorm';
 
 import { createDataSourceOptions } from '@/database/data-source-options';
 
-import type { Issue, IssueChanges, SaveIssueChangeInput } from './issue.model';
+import type { Issue, IssueChanges, SaveIssueChangeInput, SaveIssueUndoInput } from './issue.model';
 import { TypeOrmIssueRepository } from './issue.repository.typeorm';
-import { applyIssueUpdate } from './issue.rules';
+import { applyIssueUpdate, undoIssueStatus } from './issue.rules';
 
 const NOW = new Date('2026-11-22T09:00:00.000Z');
 
@@ -63,6 +63,23 @@ function buildChange({
   if (result.kind === 'unchanged') throw new Error('바뀐 것이 없는 수정 요청임');
 
   return { issue: result.issue, expectedVersion: issue.version, event: result.event };
+}
+
+/**
+ * 이슈를 진행 중으로 옮겨 저장한 뒤, 규칙 함수로 그 변경을 되돌려 saveUndo에 넘길 값을 만든다.
+ *
+ * @returns 진행 중으로 옮긴 이슈와 saveUndo에 넘길 값
+ */
+async function prepareUndo(): Promise<{ moved: Issue; undo: SaveIssueUndoInput }> {
+  const created = await createIssue();
+  const moved = await repository.saveChange(
+    buildChange({ issue: created, changes: { status: 'IN_PROGRESS' } }),
+  );
+  if (moved === null) throw new Error('진행 중으로 옮기지 못함');
+
+  const events = await repository.findLastEvents(moved.id, 2);
+  const result = undoIssueStatus(moved, events, LATER);
+  return { moved, undo: { ...result, expectedVersion: moved.version } };
 }
 
 describe('이슈 만들기', () => {
@@ -203,6 +220,48 @@ describe('이슈 수정 저장', () => {
     // Then
     await expect(attempt).rejects.toThrow();
     expect(await repository.findById(created.id)).toEqual(created);
+  });
+});
+
+describe('상태 되돌리기 저장', () => {
+  test('같은 변경을 두 번 되돌리지 않도록 되돌린 이슈를 저장하면서 그 상태 변경 이력을 지운다', async () => {
+    // Given: 진행 중으로 옮긴 이슈를 되돌린 결과
+    const { moved, undo } = await prepareUndo();
+
+    // When
+    const saved = await repository.saveUndo(undo);
+
+    // Then: 이슈는 넘긴 값대로이고 남은 이력은 만든 이력 한 줄뿐임
+    expect(saved).toEqual(undo.issue);
+    expect(await repository.findById(moved.id)).toEqual(undo.issue);
+    expect(await repository.findLastEvents(moved.id, 2)).toEqual([
+      { id: 1, issueId: moved.id, at: NOW, kind: 'CREATED' },
+    ]);
+  });
+
+  test('다른 탭의 수정을 덮어쓰지 않도록 기대한 version이 아니면 이력도 지우지 않고 null을 준다', async () => {
+    // Given
+    const { moved, undo } = await prepareUndo();
+
+    // When
+    const saved = await repository.saveUndo({ ...undo, expectedVersion: moved.version + 1 });
+
+    // Then
+    expect(saved).toBeNull();
+    expect(await repository.findById(moved.id)).toEqual(moved);
+    expect(await repository.findLastEvents(moved.id, 3)).toHaveLength(2);
+  });
+
+  test('이력과 이슈가 어긋나지 않도록 지울 이력이 없으면 던지고 이슈도 그대로 둔다', async () => {
+    // Given: 지울 이력 id가 없는 값
+    const { moved, undo } = await prepareUndo();
+
+    // When
+    const attempt = repository.saveUndo({ ...undo, removedEventId: 999 });
+
+    // Then
+    await expect(attempt).rejects.toThrow('지울 이슈 이력이 없음: issueId=1, eventId=999');
+    expect(await repository.findById(moved.id)).toEqual(moved);
   });
 });
 

@@ -1,4 +1,10 @@
-import type { CreateIssueInput, Issue, IssueEvent, SaveIssueChangeInput } from './issue.model';
+import type {
+  CreateIssueInput,
+  Issue,
+  IssueEvent,
+  SaveIssueChangeInput,
+  SaveIssueUndoInput,
+} from './issue.model';
 
 /**
  * 이슈 repository의 약속이다.
@@ -12,6 +18,9 @@ export abstract class IssueRepository {
 
   // 바뀐 이슈와 상태 변경 이력을 함께 저장함 (기대한 version의 행이 없으면 아무것도 적지 않고 null)
   abstract saveChange(input: SaveIssueChangeInput): Promise<Issue | null>;
+
+  // 되돌린 이슈를 저장하고 되돌린 상태 변경 이력을 지움 (기대한 version의 행이 없으면 아무것도 적지 않고 null)
+  abstract saveUndo(input: SaveIssueUndoInput): Promise<Issue | null>;
 
   abstract findById(id: number): Promise<Issue | null>;
 

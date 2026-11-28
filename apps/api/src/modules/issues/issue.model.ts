@@ -67,3 +67,10 @@ export interface SaveIssueChangeInput {
   expectedVersion: number;
   event: NewStatusEvent | null;
 }
+
+// service가 repository에 되돌린 이슈를 저장할 때 넘기는 값 (removedEventId는 지울 상태 변경 이력의 id)
+export interface SaveIssueUndoInput {
+  issue: Issue;
+  expectedVersion: number;
+  removedEventId: number;
+}

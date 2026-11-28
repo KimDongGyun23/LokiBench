@@ -1,6 +1,7 @@
 import { DataSource } from 'typeorm';
 
 import { createDataSourceOptions } from '@/database/data-source-options';
+import { runExclusive } from '@/database/utils/run-exclusive';
 
 import { ProjectEntity } from './project.entity';
 import { TypeOrmProjectRepository } from './project.repository.typeorm';
@@ -81,5 +82,54 @@ describe('저장할 필드 고르기', () => {
     const expected = { ...blog, color: 'rose' };
     expect(updated).toEqual(expected);
     expect(stored).toEqual(expected);
+  });
+});
+
+describe('다른 repository와 연결 나눠 쓰기', () => {
+  test('트랜잭션 도중의 값을 읽지 않도록 같은 연결의 앞 작업이 끝난 뒤에 읽는다', async () => {
+    // Given: 같은 연결에 늦게 끝나는 작업을 먼저 걸어 둠
+    const project = await repository.create({ name: '독서 기록', color: 'indigo' });
+    const steps: string[] = [];
+    const slowWork = runExclusive({
+      dataSource,
+      work: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        steps.push('앞 작업 끝');
+      },
+    });
+
+    // When: 앞 작업을 기다리지 않고 세 읽기를 시작함
+    await Promise.all([
+      slowWork,
+      repository.findAll().then(() => steps.push('목록 읽기 끝')),
+      repository.findById(project.id).then(() => steps.push('id 읽기 끝')),
+      repository.findByName(project.name).then(() => steps.push('이름 읽기 끝')),
+    ]);
+
+    // Then
+    expect(steps).toEqual(['앞 작업 끝', '목록 읽기 끝', 'id 읽기 끝', '이름 읽기 끝']);
+  });
+
+  test('성공으로 응답한 변경이 사라지지 않도록 함께 시작한 다른 트랜잭션이 롤백돼도 프로젝트 추가는 남는다', async () => {
+    // Given: 같은 연결에서 쿼리 하나를 실행한 뒤 실패하는 트랜잭션
+    const failingTransaction = runExclusive({
+      dataSource,
+      work: () =>
+        dataSource.transaction(async (manager) => {
+          await manager.query(`SELECT 1`);
+          throw new Error('다른 작업의 실패');
+        }),
+    });
+
+    // When: 실패할 트랜잭션을 기다리지 않고 프로젝트 추가를 함께 시작함
+    const [transactionResult, projectResult] = await Promise.allSettled([
+      failingTransaction,
+      repository.create({ name: '가계부', color: 'teal' }),
+    ]);
+
+    // Then
+    expect(transactionResult.status).toBe('rejected');
+    expect(projectResult.status).toBe('fulfilled');
+    expect(await repository.findByName('가계부')).not.toBeNull();
   });
 });

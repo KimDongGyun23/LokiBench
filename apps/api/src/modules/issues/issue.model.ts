@@ -52,3 +52,25 @@ export interface IssueChanges {
   due?: string | null;
   status?: IssueStatus;
 }
+
+// service가 repository에 새 이슈를 만들 때 넘기는 값
+export interface CreateIssueInput {
+  projectId: number;
+  title: string;
+  due: string | null;
+  now: Date;
+}
+
+// service가 repository에 바뀐 이슈를 저장할 때 넘기는 값 (expectedVersion은 service가 읽었을 때의 version)
+export interface SaveIssueChangeInput {
+  issue: Issue;
+  expectedVersion: number;
+  event: NewStatusEvent | null;
+}
+
+// service가 repository에 되돌린 이슈를 저장할 때 넘기는 값 (removedEventId는 지울 상태 변경 이력의 id)
+export interface SaveIssueUndoInput {
+  issue: Issue;
+  expectedVersion: number;
+  removedEventId: number;
+}

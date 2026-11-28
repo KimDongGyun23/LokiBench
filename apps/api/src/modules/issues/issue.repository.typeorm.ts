@@ -102,10 +102,11 @@ export class TypeOrmIssueRepository extends IssueRepository {
       // 그사이 다른 수정이 version을 올렸으면 아무것도 적지 않음
       if (!isUpdated) return null;
 
-      // 지울 이력이 없으면 이슈만 바뀌지 않도록 던져서 트랜잭션을 되돌림
+      // 지울 상태 변경 이력이 없으면 이슈만 바뀌지 않도록 던져서 트랜잭션을 되돌림
       const result = await manager.delete(IssueEventEntity, {
         id: removedEventId,
         issueId: issue.id,
+        kind: 'STATUS',
       });
       if (result.affected !== 1) {
         throw new Error(`지울 이슈 이력이 없음: issueId=${issue.id}, eventId=${removedEventId}`);
@@ -144,6 +145,11 @@ export class TypeOrmIssueRepository extends IssueRepository {
     issue: Issue;
     expectedVersion: number;
   }): Promise<boolean> {
+    // version이 1씩 오르지 않으면 그 뒤 겹친 수정을 잡지 못하므로 저장하지 않음
+    if (issue.version !== expectedVersion + 1) {
+      throw new Error(`저장할 version이 기대한 version의 다음이 아님: issueId=${issue.id}`);
+    }
+
     const result = await manager.update(
       IssueEntity,
       { id: issue.id, version: expectedVersion },

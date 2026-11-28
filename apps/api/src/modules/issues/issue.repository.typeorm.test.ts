@@ -220,7 +220,11 @@ describe('이슈 수정 저장', () => {
     const change = buildChange({ issue: created, changes: { title: '독서 목표 설정' } });
 
     // When
-    const saved = await repository.saveChange({ ...change, expectedVersion: 3 });
+    const saved = await repository.saveChange({
+      ...change,
+      issue: { ...change.issue, version: 4 },
+      expectedVersion: 3,
+    });
 
     // Then
     expect(saved).toBeNull();
@@ -297,7 +301,11 @@ describe('상태 되돌리기 저장', () => {
     const { moved, undo } = await prepareUndo();
 
     // When
-    const saved = await repository.saveUndo({ ...undo, expectedVersion: moved.version + 1 });
+    const saved = await repository.saveUndo({
+      ...undo,
+      issue: { ...undo.issue, version: moved.version + 2 },
+      expectedVersion: moved.version + 1,
+    });
 
     // Then
     expect(saved).toBeNull();
@@ -347,6 +355,35 @@ describe('상태 되돌리기 저장의 경계', () => {
     await expect(attempt).rejects.toThrow('지울 이슈 이력이 없음');
     expect(await repository.findById(first.moved.id)).toEqual(first.moved);
     expect(await repository.findLastEvents(second.moved.id, 2)).toEqual(secondEvents);
+  });
+});
+
+describe('저장 입력의 짝', () => {
+  test('겹친 수정을 잡는 version이 멈추지 않도록 저장할 이슈의 version이 기대한 version보다 1 크지 않으면 던진다', async () => {
+    // Given: version을 올리지 않은 이슈
+    const created = await createIssue();
+    const change = buildChange({ issue: created, changes: { title: '독서 목표 설정' } });
+
+    // When
+    const attempt = repository.saveChange({ ...change, issue: { ...change.issue, version: 1 } });
+
+    // Then
+    await expect(attempt).rejects.toThrow(
+      '저장할 version이 기대한 version의 다음이 아님: issueId=1',
+    );
+    expect(await repository.findById(created.id)).toEqual(created);
+  });
+
+  test('되돌리기의 기준이 사라지지 않도록 만든 이력의 id를 넘기면 지우지 않고 던진다', async () => {
+    // Given: 지울 이력으로 만든 이력의 id를 넘김
+    const { moved, undo } = await prepareUndo();
+
+    // When
+    const attempt = repository.saveUndo({ ...undo, removedEventId: 1 });
+
+    // Then
+    await expect(attempt).rejects.toThrow('지울 이슈 이력이 없음: issueId=1, eventId=1');
+    expect(await repository.findLastEvents(moved.id, 3)).toHaveLength(2);
   });
 });
 

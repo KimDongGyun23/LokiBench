@@ -3,6 +3,7 @@ import type { DataSourceOptions } from 'typeorm';
 import { IssueEntity } from '@/modules/issues/issue.entity';
 import { IssueCounterEntity } from '@/modules/issues/issue-counter.entity';
 import { IssueEventEntity } from '@/modules/issues/issue-event.entity';
+import { MilestoneEntity } from '@/modules/milestones/milestone.entity';
 import { ProjectEntity } from '@/modules/projects/project.entity';
 
 import { CreateProjects1792886400000 } from './migrations/1792886400000-create-projects';
@@ -23,7 +24,7 @@ export function createDataSourceOptions(databasePath: string): DataSourceOptions
   return {
     type: 'better-sqlite3',
     database: databasePath,
-    entities: [ProjectEntity, IssueEntity, IssueEventEntity, IssueCounterEntity],
+    entities: [ProjectEntity, IssueEntity, IssueEventEntity, IssueCounterEntity, MilestoneEntity],
     migrations: [
       CreateProjects1792886400000,
       DropProjectsArchivedAt1795219200000,

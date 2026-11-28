@@ -401,15 +401,16 @@ describe('이슈 읽기', () => {
       },
     });
 
-    // When: 앞 작업을 기다리지 않고 두 읽기를 시작함
+    // When: 앞 작업을 기다리지 않고 세 읽기를 시작함
     await Promise.all([
       slowWork,
       repository.findById(created.id).then(() => steps.push('이슈 읽기 끝')),
       repository.findLastEvents(created.id, 2).then(() => steps.push('이력 읽기 끝')),
+      repository.countOpenByProject().then(() => steps.push('열린 이슈 수 읽기 끝')),
     ]);
 
     // Then
-    expect(steps).toEqual(['앞 작업 끝', '이슈 읽기 끝', '이력 읽기 끝']);
+    expect(steps).toEqual(['앞 작업 끝', '이슈 읽기 끝', '이력 읽기 끝', '열린 이슈 수 읽기 끝']);
   });
 
   test('service가 ISSUE_NOT_FOUND로 바꿀 수 있도록 없는 id는 예외 대신 null을 준다', async () => {
